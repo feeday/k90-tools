@@ -1,26 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="3.4"
-        android:strokeLineCap="round"
-        android:pathData="M12,57 A42,42 0,0 1 96,57" />
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="2.2"
-        android:pathData="M29,26 C29,23.8 30.8,22 33,22 H75 C77.2,22 79,23.8 79,26 V79 C79,81.2 77.2,83 75,83 H33 C30.8,83 29,81.2 29,79 Z" />
-    <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd" android:pathData="M18 39.47H24.68V48.92L34.3 39.47H42.06L29.59 51.73L43.34 65.36H34.98L24.68 55.17V65.36H18Z M45.82 64.79V60.01Q47.42 60.75 48.87 61.12Q50.33 61.5 51.75 61.5Q54.74 61.5 56.4 59.84Q58.07 58.18 58.36 54.92Q57.18 55.79 55.85 56.22Q54.51 56.66 52.95 56.66Q48.98 56.66 46.54 54.34Q44.1 52.03 44.1 48.25Q44.1 44.06 46.82 41.55Q49.53 39.03 54.1 39.03Q59.16 39.03 61.94 42.45Q64.71 45.87 64.71 52.11Q64.71 58.53 61.47 62.2Q58.22 65.87 52.57 65.87Q50.75 65.87 49.08 65.6Q47.42 65.33 45.82 64.79ZM54.06 52.32Q55.81 52.32 56.7 51.19Q57.58 50.05 57.58 47.78Q57.58 45.52 56.7 44.38Q55.81 43.23 54.06 43.23Q52.31 43.23 51.42 44.38Q50.54 45.52 50.54 47.78Q50.54 50.05 51.42 51.19Q52.31 52.32 54.06 52.32Z M83.32 52.39Q83.32 47.53 82.41 45.55Q81.5 43.56 79.35 43.56Q77.2 43.56 76.28 45.55Q75.36 47.53 75.36 52.39Q75.36 57.3 76.28 59.31Q77.2 61.32 79.35 61.32Q81.48 61.32 82.4 59.31Q83.32 57.3 83.32 52.39ZM90 52.44Q90 58.88 87.22 62.37Q84.45 65.87 79.35 65.87Q74.23 65.87 71.46 62.37Q68.68 58.88 68.68 52.44Q68.68 45.99 71.46 42.5Q74.23 39 79.35 39Q84.45 39 87.22 42.5Q90 45.99 90 52.44Z" />
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="3"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M35,73 H44 L49,67 L54,80 L60,72 H73" />
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Compact K mark, fully within the adaptive icon safe zone. -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M35,32 H44 V50 L62,32 H74 L52,54 L74,76 H62 L44,58 V76 H35 Z" />
 </vector>

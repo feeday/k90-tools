@@ -81,7 +81,7 @@ test('cloud failure is visible, resets send button and clears progress timer',as
  let message,cleared=false;
  const c={window:{},addCallRecord(){},Date,performance:{now:()=>1},$:(id)=>fields[id],txt:{value:'hello'},modifiedImgSrc:'',originalImgSrc:'',overlayAutoSpeakNext:false,IMAGE_MODELS:[],setInterval:()=>123,clearInterval:id=>{cleared=id===123},log(){},alert:m=>message=m,saveField:()=> 'key',getBase:()=> 'https://api.poixe.com',completionUrl:x=>x+'/v1/chat/completions',chatContext:[],apiJson:async()=>{throw Error('HTTP 401: invalid key')},onModelChange(){}};
  vm.createContext(c);
- vm.runInContext(html.slice(html.indexOf('async function runAi('),html.indexOf("bind('btnApiCheck',")),c);
+ vm.runInContext(html.slice(html.indexOf('async function runAi('),html.indexOf("bind('btnCombinedAction',runAi);")),c);
  await c.runAi();
  assert.match(message,/HTTP 401/);assert.equal(fields.btnCombinedAction.disabled,false);assert.equal(cleared,true);
 });
