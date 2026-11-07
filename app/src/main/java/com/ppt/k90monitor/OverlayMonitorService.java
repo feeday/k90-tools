@@ -48,6 +48,7 @@ public class OverlayMonitorService extends Service {
     private TextView text;
     private TextView ftpInfo;
     private LinearLayout footer;
+    private LinearLayout chatRow;
     private TextView ftpToggle;
     private TextView aiButton;
     private EditText aiInput;
@@ -158,7 +159,7 @@ public class OverlayMonitorService extends Service {
         footer.addView(close, new LinearLayout.LayoutParams(-2, -2));
         box.addView(footer, new LinearLayout.LayoutParams(-2, -2));
 
-        LinearLayout chatRow = new LinearLayout(this);
+        chatRow = new LinearLayout(this);
         chatRow.setOrientation(LinearLayout.HORIZONTAL);
         chatRow.setGravity(Gravity.CENTER_VERTICAL);
         chatRow.setPadding(0, dp(7), 0, 0);
@@ -200,6 +201,7 @@ public class OverlayMonitorService extends Service {
         sendAi.setOnClickListener(v -> sendOverlayPrompt());
         chatRow.addView(sendAi, new LinearLayout.LayoutParams(-2, dp(38)));
         box.addView(chatRow, new LinearLayout.LayoutParams(-1, -2));
+        chatRow.setVisibility(MODE_TEMP.equals(prefs.getString(KEY_MODE, MODE_FULL)) ? View.GONE : View.VISIBLE);
 
         lp = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -227,6 +229,7 @@ public class OverlayMonitorService extends Service {
         boolean hasLiveRedMagic = r.fileExists && !r.stale && r.fanRpm >= 0;
 
         if (MODE_TEMP.equals(mode)) {
+            setChatInputVisible(false);
             if (footer != null) footer.setVisibility(View.GONE);
             if (ftpInfo != null) ftpInfo.setVisibility(View.GONE);
             StringBuilder out = new StringBuilder();
@@ -238,6 +241,7 @@ public class OverlayMonitorService extends Service {
             return;
         }
 
+        setChatInputVisible(true);
         if (footer != null) footer.setVisibility(View.VISIBLE);
         updateFtpUi();
 
@@ -254,6 +258,17 @@ public class OverlayMonitorService extends Service {
                     .append("\nPWR ").append(RedMagicBridgeReader.formatPower(r.powerW));
         }
         text.setText(out.toString());
+    }
+
+    private void setChatInputVisible(boolean visible) {
+        if (chatRow == null) return;
+        if (!visible && chatRow.getVisibility() == View.VISIBLE && aiInput != null) {
+            InputMethodManager input = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (input != null) input.hideSoftInputFromWindow(aiInput.getWindowToken(), 0);
+            aiInput.clearFocus();
+            setOverlayFocusable(false);
+        }
+        chatRow.setVisibility(visible ? View.VISIBLE : View.GONE);
     }
 
     private void focusAiInput() {
