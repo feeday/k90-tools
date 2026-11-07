@@ -46,9 +46,9 @@ jobs:
 
           html = Path("app/src/main/assets/puck/index.html").read_text(encoding="utf-8")
           scripts = []
-          for match in re.finditer(r"<script\\b([^>]*)>(.*?)</script>", html, re.I | re.S):
+          for match in re.finditer(r"<script\b([^>]*)>(.*?)</script>", html, re.I | re.S):
               attrs, body = match.groups()
-              if re.search(r"\\bsrc\\s*=", attrs) or not body.strip():
+              if re.search(r"\bsrc\s*=", attrs) or not body.strip():
                   continue
               scripts.append(body)
 
