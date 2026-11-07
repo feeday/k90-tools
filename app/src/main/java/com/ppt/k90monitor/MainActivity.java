@@ -71,7 +71,7 @@ public class MainActivity extends Activity {
         root.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
         TextView desc = new TextView(this);
-        desc.setText("温度模式：单行显示 CPU / GPU / BAT / 背夹温度，无数据项自动隐藏。\n\n全部模式：显示 CPU、GPU 温度、电池温度、RAM、实时网速和红魔扩展数据，并可直接在悬浮窗开关 FTP。\n\n内置 CPU 压力测试，可选 3 / 5 / 15 / 30 / 60 分钟，结束后显示平均 / 最高 / 最低频率、平均占用和最高温度。\n\n新增 Puck Chat AI 工具箱，页面资源直接打包在 APK 内，无需自建网站或 Node.js 服务。");
+        desc.setText("温度模式：单行显示 CPU / GPU / BAT / 背夹温度，无数据项自动隐藏，不显示 AI 输入框。\n\n全部模式：显示 CPU、GPU 温度、电池温度、RAM、实时网速和红魔扩展数据，并显示 AI 输入框与发送按钮，可直接在悬浮窗开关 FTP。\n\n内置 CPU 压力测试，可选 3 / 5 / 15 / 30 / 60 分钟，结束后显示平均 / 最高 / 最低频率、平均占用和最高温度。\n\n新增 Puck Chat AI 工具箱，页面资源直接打包在 APK 内，无需自建网站或 Node.js 服务。");
         desc.setTextSize(15);
         desc.setTextColor(Color.DKGRAY);
         desc.setLineSpacing(0, 1.2f);
