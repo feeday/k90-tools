@@ -56,3 +56,32 @@ test('overlay allows local model without key and refuses to overwrite busy input
  fields.btnCombinedAction.disabled=true;
  assert.equal(c.window.receiveOverlayPrompt('second'),false);assert.equal(c.txt.value,'hello');
 });
+test('speech removes nested, encoded and unfinished thinking, retaining only Chinese and English',()=>{
+ const c={};vm.createContext(c);
+ vm.runInContext(html.slice(html.indexOf('function speechOnlyText('),html.indexOf('function speakText(')),c);
+ assert.equal(c.speechOnlyText('<think>秘密 secret</think>你好 Hello 123 + 🌟'),'你好 Hello');
+ assert.equal(c.speechOnlyText('&lt;think&gt;不要读&lt;/think&gt;答案 answer'),'答案 answer');
+ assert.equal(c.speechOnlyText('<think>first<think>nested</think>last</think>正文'),'正文');
+ assert.equal(c.speechOnlyText('<think>未结束的思考'),'');
+ assert.equal(c.speechOnlyText('[THINK]secret[/THINK]Hello **中文** https://example.com 12'),'Hello 中文');
+ assert.equal(c.speechOnlyText('```python\nprint("secret")\n``` [答案](https://example.com)'),'答案');
+});
+test('all speech engines receive filtered text',()=>{
+ for(const engine of ['local','doubao','system']){
+  let spoken;
+  const c={window:{},String,ttsBusy:false,nativeTtsPending:false,$:()=>({}),saveField:id=>({ttsProvider:engine==='local'?'local':'doubao',ttsApiKey:engine==='system'?'':'test'}[id]||''),updateMemoryStatus(){},AndroidPuck:{synthesizeLocal:t=>spoken=t,synthesize:t=>spoken=t,speakSystem:t=>spoken=t}};
+  c.window.AndroidPuck=c.AndroidPuck;vm.createContext(c);
+  vm.runInContext(html.slice(html.indexOf('function speechOnlyText('),html.indexOf("bind('btnTts',")),c);
+  assert.equal(c.speakText('<think>secret</think>你好 English 123',true),true);
+  assert.equal(spoken,'你好 English');
+ }
+});
+test('cloud failure is visible, resets send button and clears progress timer',async()=>{
+ const fields={unifiedModel:{value:'deepseek-v4-flash'},btnCombinedAction:{disabled:false},responseWrap:{scrollIntoView(){}}};
+ let message,cleared=false;
+ const c={window:{},Date,performance:{now:()=>1},$:(id)=>fields[id],txt:{value:'hello'},modifiedImgSrc:'',originalImgSrc:'',overlayAutoSpeakNext:false,IMAGE_MODELS:[],setInterval:()=>123,clearInterval:id=>{cleared=id===123},log(){},alert:m=>message=m,saveField:()=> 'key',getBase:()=> 'https://api.poixe.com',completionUrl:x=>x+'/v1/chat/completions',chatContext:[],apiJson:async()=>{throw Error('HTTP 401: invalid key')},onModelChange(){}};
+ vm.createContext(c);
+ vm.runInContext(html.slice(html.indexOf('async function runAi('),html.indexOf("bind('btnApiCheck',")),c);
+ await c.runAi();
+ assert.match(message,/HTTP 401/);assert.equal(fields.btnCombinedAction.disabled,false);assert.equal(cleared,true);
+});

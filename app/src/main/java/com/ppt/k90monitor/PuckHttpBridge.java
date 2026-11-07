@@ -40,9 +40,11 @@ public final class PuckHttpBridge {
             if (!key.isEmpty()) builder.header("Authorization", key);
             if (method.equals("POST")) builder.post(RequestBody.create(
                     body, MediaType.parse("application/json; charset=utf-8")));
-            client.newCall(builder.build()).enqueue(new Callback() {
+            Call requestCall = client.newCall(builder.build());
+            if (method.equals("GET")) requestCall.timeout().timeout(20, TimeUnit.SECONDS);
+            requestCall.enqueue(new Callback() {
                 @Override public void onFailure(Call call, IOException error) {
-                    deliver(id, 0, "", "网络连接失败或超时，请检查 API 地址及网络");
+                    deliver(id, 0, "", networkError(error));
                 }
                 @Override public void onResponse(Call call, Response response) {
                     try (Response result = response) {
@@ -55,6 +57,15 @@ public final class PuckHttpBridge {
         } catch (Exception error) {
             deliver(id, 0, "", "请求参数无效，请检查 API 地址和认证设置");
         }
+    }
+
+    private static String networkError(IOException error) {
+        if (error instanceof java.net.UnknownHostException) return "DNS 解析失败：请检查域名或切换网络";
+        if (error instanceof javax.net.ssl.SSLException) return "HTTPS 证书或 TLS 握手失败：请检查手机时间、代理及服务端证书";
+        if (error instanceof java.net.SocketTimeoutException || error instanceof java.io.InterruptedIOException)
+            return "API 等待超时，请检查云端服务状态或稍后重试";
+        if (error instanceof java.net.ConnectException) return "无法连接 API 服务器：请检查网络和端口";
+        return "网络请求失败（" + error.getClass().getSimpleName() + "），请检查网络或代理";
     }
 
     private void deliver(String id, int status, String body, String error) {
