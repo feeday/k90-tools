@@ -69,7 +69,7 @@ test('speech removes nested, encoded and unfinished thinking, retaining only Chi
 test('all speech engines receive filtered text',()=>{
  for(const engine of ['local','doubao','system']){
   let spoken;
-  const c={window:{},String,ttsBusy:false,nativeTtsPending:false,$:()=>({}),saveField:id=>({ttsProvider:engine==='local'?'local':'doubao',ttsApiKey:engine==='system'?'':'test'}[id]||''),updateMemoryStatus(){},AndroidPuck:{synthesizeLocal:t=>spoken=t,synthesize:t=>spoken=t,speakSystem:t=>spoken=t}};
+  const c={window:{},beginSpeechRecord(){},String,ttsBusy:false,nativeTtsPending:false,$:()=>({}),saveField:id=>({ttsProvider:engine==='local'?'local':'doubao',ttsApiKey:engine==='system'?'':'test'}[id]||''),updateMemoryStatus(){},AndroidPuck:{synthesizeLocal:t=>spoken=t,synthesize:t=>spoken=t,speakSystem:t=>spoken=t}};
   c.window.AndroidPuck=c.AndroidPuck;vm.createContext(c);
   vm.runInContext(html.slice(html.indexOf('function speechOnlyText('),html.indexOf("bind('btnTts',")),c);
   assert.equal(c.speakText('<think>secret</think>你好 English 123',true),true);
@@ -79,9 +79,25 @@ test('all speech engines receive filtered text',()=>{
 test('cloud failure is visible, resets send button and clears progress timer',async()=>{
  const fields={unifiedModel:{value:'deepseek-v4-flash'},btnCombinedAction:{disabled:false},responseWrap:{scrollIntoView(){}}};
  let message,cleared=false;
- const c={window:{},Date,performance:{now:()=>1},$:(id)=>fields[id],txt:{value:'hello'},modifiedImgSrc:'',originalImgSrc:'',overlayAutoSpeakNext:false,IMAGE_MODELS:[],setInterval:()=>123,clearInterval:id=>{cleared=id===123},log(){},alert:m=>message=m,saveField:()=> 'key',getBase:()=> 'https://api.poixe.com',completionUrl:x=>x+'/v1/chat/completions',chatContext:[],apiJson:async()=>{throw Error('HTTP 401: invalid key')},onModelChange(){}};
+ const c={window:{},addCallRecord(){},Date,performance:{now:()=>1},$:(id)=>fields[id],txt:{value:'hello'},modifiedImgSrc:'',originalImgSrc:'',overlayAutoSpeakNext:false,IMAGE_MODELS:[],setInterval:()=>123,clearInterval:id=>{cleared=id===123},log(){},alert:m=>message=m,saveField:()=> 'key',getBase:()=> 'https://api.poixe.com',completionUrl:x=>x+'/v1/chat/completions',chatContext:[],apiJson:async()=>{throw Error('HTTP 401: invalid key')},onModelChange(){}};
  vm.createContext(c);
  vm.runInContext(html.slice(html.indexOf('async function runAi('),html.indexOf("bind('btnApiCheck',")),c);
  await c.runAi();
  assert.match(message,/HTTP 401/);assert.equal(fields.btnCombinedAction.disabled,false);assert.equal(cleared,true);
+});
+
+test('usage logs preserve LLM and TTS together, distinguish estimates and missing costs',()=>{
+ let now=1000;const box={};
+ const c={Date,performance:{now:()=>now},$:()=>box,getOutputTokenCount:()=>({count:8,estimated:true})};vm.createContext(c);
+ vm.runInContext(html.slice(html.indexOf('const callRecords=[];'),html.indexOf('function bind(id,fn)')),c);
+ c.recordLlmUsage({model:'server-model',usage:{prompt_tokens:12}},'requested',2,'reply');
+ c.beginSpeechRecord('local','unknown','voice','中文 hi');now=3500;
+ c.recordSpeechResult({},'成功');
+ assert.match(box.textContent,/server-model/);assert.match(box.textContent,/8（估算）/);
+ assert.match(box.textContent,/费用: 未提供/);assert.match(box.textContent,/合成请求耗时: 2.50s/);
+ assert.match(box.textContent,/提交字符数: 5/);
+ assert.equal(c.costInfo({cost:0,currency:'USD'}),'0 USD');
+ assert.equal(c.costInfo({}),'未提供');
+ for(let i=0;i<31;i++)c.addCallRecord({类型:'test',序号:i});
+ assert.equal(box.textContent.split('\n\n').length,30);
 });

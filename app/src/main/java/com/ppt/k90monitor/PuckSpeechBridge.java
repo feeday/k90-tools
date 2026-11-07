@@ -75,6 +75,7 @@ public final class PuckSpeechBridge {
     private volatile WebSocket ttsSocket;
     private volatile boolean ttsCancelled;
     private volatile boolean ttsFinished;
+    private volatile JSONObject ttsUsage;
     private final ByteArrayOutputStream ttsAudio = new ByteArrayOutputStream();
 
     public PuckSpeechBridge(WebView webView) {
@@ -388,6 +389,7 @@ public final class PuckSpeechBridge {
                 ? "zh_female_vv_uranus_bigtts" : speaker.trim();
         ttsCancelled = false;
         ttsFinished = false;
+        ttsUsage = null;
         synchronized (ttsAudio) { ttsAudio.reset(); }
 
         Request request = new Request.Builder()
@@ -436,6 +438,7 @@ public final class PuckSpeechBridge {
                     }
                     if (packet.messageType == 0x09 && packet.event == 152) {
                         JSONObject meta = new JSONObject(new String(packet.payload, StandardCharsets.UTF_8));
+                        ttsUsage = meta.optJSONObject("usage");
                         int status = meta.optInt("status_code", 20000000);
                         if (status != 20000000) {
                             failTts(meta.optString("message", "TTS 状态码 " + status));
@@ -572,6 +575,7 @@ public final class PuckSpeechBridge {
         JSONObject event = new JSONObject();
         try {
             event.put("type", "done");
+            if (ttsUsage != null) event.put("usage", ttsUsage);
             event.put("audioBase64", Base64.encodeToString(audio, Base64.NO_WRAP));
         } catch (Exception ignored) { }
         sendJs("onNativeTtsResult", event);
