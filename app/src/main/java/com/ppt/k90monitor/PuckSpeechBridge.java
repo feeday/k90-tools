@@ -8,7 +8,11 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
 import android.util.Base64;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
@@ -25,6 +29,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -58,6 +63,12 @@ public final class PuckSpeechBridge {
     private final WebView webView;
     private final Context appContext;
     private final Map<String, SaveSession> saveSessions = new ConcurrentHashMap<>();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private TextToSpeech systemTts;
+    private boolean systemTtsInitializing;
+    private volatile boolean systemTtsReady;
+    private String pendingSystemTtsText;
+    private String currentSystemUtteranceId;
     private final OkHttpClient client;
     private final OkHttpClient localTtsClient;
     private volatile Call localTtsCall;
@@ -235,6 +246,123 @@ public final class PuckSpeechBridge {
         if (name.isEmpty() || ".".equals(name)) name = "K90-Tools-file.bin";
         if (name.length() > 120) name = name.substring(name.length() - 120);
         return name;
+    }
+
+    @JavascriptInterface
+    public void speakSystem(String text) {
+        String value = text == null ? "" : text.trim();
+        if (value.isEmpty()) {
+            systemTtsEvent("error", "没有可朗读的文字");
+            return;
+        }
+        if (value.length() > MAX_TTS_TEXT) {
+            systemTtsEvent("error", "单次朗读最多支持 10000 个字符");
+            return;
+        }
+        mainHandler.post(() -> {
+            pendingSystemTtsText = value;
+            if (systemTtsReady && systemTts != null) {
+                startSystemTts(value);
+                pendingSystemTtsText = null;
+                return;
+            }
+            if (systemTtsInitializing) return;
+            systemTtsInitializing = true;
+            try {
+                systemTts = new TextToSpeech(appContext, status -> {
+                    systemTtsInitializing = false;
+                    if (status != TextToSpeech.SUCCESS || systemTts == null) {
+                        pendingSystemTtsText = null;
+                        systemTtsEvent("error", "Android 系统语音初始化失败");
+                        return;
+                    }
+                    int language = systemTts.setLanguage(Locale.SIMPLIFIED_CHINESE);
+                    systemTtsReady = language != TextToSpeech.LANG_MISSING_DATA
+                            && language != TextToSpeech.LANG_NOT_SUPPORTED;
+                    systemTts.setSpeechRate(1.0f);
+                    systemTts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                        @Override public void onStart(String utteranceId) {
+                            if (utteranceId.equals(currentSystemUtteranceId)) systemTtsEvent("started", null);
+                        }
+                        @Override public void onDone(String utteranceId) {
+                            if (utteranceId.equals(currentSystemUtteranceId)) {
+                                currentSystemUtteranceId = null;
+                                systemTtsEvent("done", null);
+                            }
+                        }
+                        @Override public void onError(String utteranceId) {
+                            if (utteranceId.equals(currentSystemUtteranceId)) {
+                                currentSystemUtteranceId = null;
+                                systemTtsEvent("error", "Android 系统语音合成失败");
+                            }
+                        }
+                        @Override public void onError(String utteranceId, int errorCode) {
+                            if (utteranceId.equals(currentSystemUtteranceId)) {
+                                currentSystemUtteranceId = null;
+                                systemTtsEvent("error", "Android 系统语音错误码 " + errorCode);
+                            }
+                        }
+                    });
+                    if (!systemTtsReady) {
+                        pendingSystemTtsText = null;
+                        systemTtsEvent("error", "设备未安装或不支持简体中文语音数据");
+                        return;
+                    }
+                    String pending = pendingSystemTtsText;
+                    pendingSystemTtsText = null;
+                    if (pending != null) startSystemTts(pending);
+                });
+            } catch (Throwable error) {
+                systemTtsInitializing = false;
+                pendingSystemTtsText = null;
+                systemTtsEvent("error", "Android 系统语音启动失败：" + safeMessage(error));
+            }
+        });
+    }
+
+    private void startSystemTts(String text) {
+        if (systemTts == null || !systemTtsReady) {
+            systemTtsEvent("error", "Android 系统语音尚未就绪");
+            return;
+        }
+        String utteranceId = "k90-" + UUID.randomUUID();
+        currentSystemUtteranceId = utteranceId;
+        int result = systemTts.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
+        if (result == TextToSpeech.ERROR) {
+            currentSystemUtteranceId = null;
+            systemTtsEvent("error", "Android 系统语音无法开始朗读");
+        }
+    }
+
+    private void systemTtsEvent(String type, String message) {
+        JSONObject event = new JSONObject();
+        try {
+            event.put("type", type);
+            if (message != null) event.put("message", message);
+        } catch (Exception ignored) { }
+        sendJs("onNativeSystemTtsResult", event);
+    }
+
+    @JavascriptInterface
+    public void cancelSystemTts() {
+        mainHandler.post(() -> {
+            pendingSystemTtsText = null;
+            currentSystemUtteranceId = null;
+            if (systemTts != null) systemTts.stop();
+        });
+    }
+
+    public void shutdownSystemTts() {
+        mainHandler.post(() -> {
+            pendingSystemTtsText = null;
+            currentSystemUtteranceId = null;
+            systemTtsReady = false;
+            if (systemTts != null) {
+                try { systemTts.stop(); } catch (Throwable ignored) { }
+                try { systemTts.shutdown(); } catch (Throwable ignored) { }
+                systemTts = null;
+            }
+        });
     }
 
     @JavascriptInterface

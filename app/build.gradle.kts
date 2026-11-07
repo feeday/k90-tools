@@ -10,8 +10,8 @@ android {
         applicationId = "com.ppt.k90tools"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "5.10-tools"
+        versionCode = 4
+        versionName = "5.11-tools"
     }
 
     buildTypes {

@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -44,6 +46,9 @@ public class PuckChatActivity extends Activity {
     private PuckSpeechBridge speechBridge;
     private boolean pageLoaded;
     private String pendingPrompt;
+    private boolean promptDispatchInFlight;
+    private int promptDispatchAttempts;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -137,11 +142,11 @@ public class PuckChatActivity extends Activity {
             }
 
             @Override public boolean shouldOverrideUrlLoading(WebView webView, WebResourceRequest request) {
-                return routeNavigation(request.getUrl());
+                return routeNavigation(webView, request.getUrl());
             }
 
             @Override public boolean shouldOverrideUrlLoading(WebView webView, String url) {
-                return routeNavigation(Uri.parse(url));
+                return routeNavigation(webView, Uri.parse(url));
             }
         });
 
@@ -180,23 +185,36 @@ public class PuckChatActivity extends Activity {
         String prompt = intent == null ? null : intent.getStringExtra(EXTRA_PROMPT);
         if (prompt != null && !prompt.trim().isEmpty()) {
             pendingPrompt = prompt.trim();
+            promptDispatchAttempts = 0;
             dispatchPendingPrompt();
         }
     }
 
     private void dispatchPendingPrompt() {
-        if (!pageLoaded || mainWebView == null || pendingPrompt == null || pendingPrompt.trim().isEmpty()) return;
+        if (!pageLoaded || mainWebView == null || promptDispatchInFlight
+                || pendingPrompt == null || pendingPrompt.trim().isEmpty()) return;
         String prompt = pendingPrompt;
-        pendingPrompt = null;
-        String script = "if (typeof window.receiveOverlayPrompt === 'function') { window.receiveOverlayPrompt("
-                + JSONObject.quote(prompt) + "); }";
-        mainWebView.post(() -> {
-            try { mainWebView.evaluateJavascript(script, null); }
-            catch (Throwable error) { pendingPrompt = prompt; }
+        String script = "(function(){if(typeof window.receiveOverlayPrompt!=='function')return false;"
+                + "window.receiveOverlayPrompt(" + JSONObject.quote(prompt) + ");return true;})()";
+        promptDispatchInFlight = true;
+        mainWebView.evaluateJavascript(script, result -> {
+            promptDispatchInFlight = false;
+            if ("true".equals(result)) {
+                if (prompt.equals(pendingPrompt)) pendingPrompt = null;
+                promptDispatchAttempts = 0;
+            } else if (pendingPrompt != null) {
+                promptDispatchAttempts++;
+                if (promptDispatchAttempts <= 30) {
+                    mainHandler.postDelayed(this::dispatchPendingPrompt, 200);
+                } else {
+                    Toast.makeText(this, "悬浮窗消息未能送达，请刷新工具箱后重试", Toast.LENGTH_LONG).show();
+                }
+            }
+            if (pendingPrompt != null && !pendingPrompt.equals(prompt)) dispatchPendingPrompt();
         });
     }
 
-    private boolean routeNavigation(Uri uri) {
+    private boolean routeNavigation(WebView sourceView, Uri uri) {
         if (uri == null) return true;
         String scheme = uri.getScheme();
         String host = uri.getHost();
@@ -206,7 +224,16 @@ public class PuckChatActivity extends Activity {
                 || "data".equalsIgnoreCase(scheme)) {
             return false;
         }
-        // All external HTTP(S), mail and custom-scheme navigation is intentionally blocked.
+        if ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)) {
+            if (sourceView != mainWebView) closePopupWindow();
+            try {
+                Intent browser = new Intent(Intent.ACTION_VIEW, uri);
+                browser.addCategory(Intent.CATEGORY_BROWSABLE);
+                startActivity(browser);
+            } catch (ActivityNotFoundException error) {
+                Toast.makeText(this, "没有可用的外部浏览器", Toast.LENGTH_SHORT).show();
+            }
+        }
         return true;
     }
 
@@ -294,7 +321,8 @@ public class PuckChatActivity extends Activity {
             fileChooserCallback = null;
         }
         closePopupWindow();
-        if (speechBridge != null) { speechBridge.cancelTts(); speechBridge.cancelLocalTts(); }
+        mainHandler.removeCallbacksAndMessages(null);
+        if (speechBridge != null) { speechBridge.cancelTts(); speechBridge.cancelLocalTts(); speechBridge.shutdownSystemTts(); }
         if (mainWebView != null) {
             try { mainWebView.stopLoading(); mainWebView.removeJavascriptInterface("AndroidPuck"); mainWebView.destroy(); }
             catch (Throwable ignored) { }
