@@ -56,14 +56,15 @@ test('overlay allows local model without key and refuses to overwrite busy input
  fields.btnCombinedAction.disabled=true;
  assert.equal(c.window.receiveOverlayPrompt('second'),false);assert.equal(c.txt.value,'hello');
 });
-test('speech removes nested, encoded and unfinished thinking, retaining only Chinese and English',()=>{
+test('speech removes nested, encoded and unfinished thinking, retaining Chinese, English and numbers',()=>{
  const c={};vm.createContext(c);
  vm.runInContext(html.slice(html.indexOf('function speechOnlyText('),html.indexOf('function speakText(')),c);
- assert.equal(c.speechOnlyText('<think>秘密 secret</think>你好 Hello 123 + 🌟'),'你好 Hello');
+ assert.equal(c.speechOnlyText('<think>秘密 secret</think>你好 Hello 123 + 🌟'),'你好 Hello 123');
  assert.equal(c.speechOnlyText('&lt;think&gt;不要读&lt;/think&gt;答案 answer'),'答案 answer');
  assert.equal(c.speechOnlyText('<think>first<think>nested</think>last</think>正文'),'正文');
  assert.equal(c.speechOnlyText('<think>未结束的思考'),'');
- assert.equal(c.speechOnlyText('[THINK]secret[/THINK]Hello **中文** https://example.com 12'),'Hello 中文');
+ assert.equal(c.speechOnlyText('<think>隐藏 999</think>价格 12.50 元，利率 3.2% 时间 12:30'),'价格 12.50 元 利率 3.2% 时间 12:30');
+ assert.equal(c.speechOnlyText('[THINK]secret[/THINK]Hello **中文** https://example.com 12'),'Hello 中文 12');
  assert.equal(c.speechOnlyText('```python\nprint("secret")\n``` [答案](https://example.com)'),'答案');
 });
 test('all speech engines receive filtered text',()=>{
@@ -73,7 +74,7 @@ test('all speech engines receive filtered text',()=>{
   c.window.AndroidPuck=c.AndroidPuck;vm.createContext(c);
   vm.runInContext(html.slice(html.indexOf('function speechOnlyText('),html.indexOf("bind('btnTts',")),c);
   assert.equal(c.speakText('<think>secret</think>你好 English 123',true),true);
-  assert.equal(spoken,'你好 English');
+  assert.equal(spoken,'你好 English 123');
  }
 });
 test('cloud failure is visible, resets send button and clears progress timer',async()=>{
