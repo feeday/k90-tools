@@ -68,6 +68,7 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
+          import re
           from pathlib import Path
           html = Path("app/src/main/assets/puck/index.html").read_text(encoding="utf-8")
           required = {
@@ -77,11 +78,18 @@ jobs:
               "native file export": "AndroidPuck.beginSaveFile",
               "native system speech fallback": "AndroidPuck.speakSystem",
               "awaited audio export": "await downloadBlob(blob",
+              "video-to-audio button": 'id="btnExtractAudio"',
           }
           missing = [name for name, marker in required.items() if marker not in html]
           if missing:
               raise SystemExit("Missing required integrations: " + ", ".join(missing))
-          print("Required Puck Chat integrations are present")
+
+          ids = set(re.findall(r'\\bid=["\\']([^"\\']+)["\\']', html))
+          bound = set(re.findall(r'\\bbind\\(["\\']([^"\\']+)["\\']', html))
+          missing_bindings = sorted(bound - ids)
+          if missing_bindings:
+              raise SystemExit("Buttons without matching DOM elements: " + ", ".join(missing_bindings))
+          print(f"Required integrations present; {len(bound)} bound controls have matching DOM elements")
           PY
       - name: Set up JDK 17
         uses: actions/setup-java@v4
