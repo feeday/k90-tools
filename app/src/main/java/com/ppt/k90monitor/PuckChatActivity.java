@@ -100,10 +100,6 @@ public class PuckChatActivity extends Activity {
         root.addView(contentFrame, new LinearLayout.LayoutParams(-1, 0, 1f));
         setContentView(root);
 
-        if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.RECORD_AUDIO)
-                != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_MIC);
-        }
     }
 
     private WebView createWebView() {
