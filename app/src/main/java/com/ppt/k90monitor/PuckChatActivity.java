@@ -97,6 +97,7 @@ public class PuckChatActivity extends Activity {
         mainWebView.addJavascriptInterface(speechBridge, "AndroidPuck");
         httpBridge = new PuckHttpBridge(mainWebView);
         mainWebView.addJavascriptInterface(httpBridge, "AndroidHttp");
+        mainWebView.addJavascriptInterface(new ToolsSettings(), "AndroidSettings");
         contentFrame.addView(mainWebView, new FrameLayout.LayoutParams(-1, -1));
 
         popupLayer = new LinearLayout(this);
@@ -108,6 +109,32 @@ public class PuckChatActivity extends Activity {
         root.addView(contentFrame, new LinearLayout.LayoutParams(-1, 0, 1f));
         setContentView(root);
 
+    }
+
+    public final class ToolsSettings {
+        @android.webkit.JavascriptInterface public void resetTools() {
+            mainHandler.post(() -> {
+                pageLoaded = false;
+                pendingPrompt = null;
+                getIntent().removeExtra(EXTRA_PROMPT);
+                mainHandler.removeCallbacksAndMessages(null);
+                if (httpBridge != null) httpBridge.close();
+                if (speechBridge != null) {
+                    speechBridge.cancelTts(); speechBridge.cancelLocalTts(); speechBridge.shutdownSystemTts();
+                }
+                if (mainWebView != null) {
+                    mainWebView.stopLoading();
+                    mainWebView.clearCache(true);
+                    mainWebView.clearFormData();
+                    mainWebView.clearHistory();
+                }
+                android.webkit.WebStorage.getInstance().deleteAllData();
+                android.webkit.CookieManager.getInstance().removeAllCookies(removed -> {
+                    android.webkit.CookieManager.getInstance().flush();
+                    if (!isFinishing() && !isDestroyed()) recreate();
+                });
+            });
+        }
     }
 
     private WebView createWebView() {
@@ -331,7 +358,7 @@ public class PuckChatActivity extends Activity {
         if (httpBridge != null) httpBridge.close();
         if (speechBridge != null) { speechBridge.cancelTts(); speechBridge.cancelLocalTts(); speechBridge.shutdownSystemTts(); }
         if (mainWebView != null) {
-            try { mainWebView.stopLoading(); mainWebView.removeJavascriptInterface("AndroidPuck"); mainWebView.removeJavascriptInterface("AndroidHttp"); mainWebView.destroy(); }
+            try { mainWebView.stopLoading(); mainWebView.removeJavascriptInterface("AndroidPuck"); mainWebView.removeJavascriptInterface("AndroidHttp"); mainWebView.removeJavascriptInterface("AndroidSettings"); mainWebView.destroy(); }
             catch (Throwable ignored) { }
             mainWebView = null;
         }

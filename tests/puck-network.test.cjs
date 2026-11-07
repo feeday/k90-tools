@@ -114,3 +114,12 @@ test('image description sends current image without history and displays only re
  request=null;c.modifiedImgSrc='';c.originalImgSrc='';c.alert=()=>{};
  await c.runAi({describe:true});assert.equal(request,null);
 });
+test('full reset clears secrets and memory only after confirmation, then uses native restart',async()=>{
+ let allow=false;const actions=[];const fields={btnResetAll:{disabled:false}};
+ const c={window:{},confirm:()=>allow,$:id=>fields[id],AndroidPuck:{cancelTts:()=>actions.push('stop'),cancelLocalTts(){},cancelSystemTts(){},saveTextFile:(name,mime,data)=>{assert.equal(JSON.parse(data).messages.length,0);actions.push('backup');return 'Download/K90-Tools/ai_chat_memory.json'}},resetTts(){},memoryArchiveData:()=>JSON.stringify({messages:c.chatContext}),chatContext:[{content:'private'}],localStorage:{clear:()=>actions.push('local')},sessionStorage:{clear:()=>actions.push('session')},callRecords:[{private:true}],speechRequest:{},clearMedia(){},resetAudio(){},txt:{value:'private'},document:{querySelectorAll:()=>[]},AndroidSettings:{resetTools:()=>actions.push('restart')},alert:msg=>{throw Error(msg)}};
+ c.window.AndroidPuck=c.AndroidPuck;c.window.AndroidSettings=c.AndroidSettings;
+ vm.createContext(c);vm.runInContext(html.slice(html.indexOf('let resettingTools=false;'),html.indexOf("bind('btnResetAll',")),c);
+ await c.resetAllTools();assert.equal(actions.length,0);
+ allow=true;await c.resetAllTools();
+ assert.deepEqual(actions,['stop','backup','local','session','restart']);assert.equal(c.txt.value,'');assert.equal(c.callRecords.length,0);
+});
