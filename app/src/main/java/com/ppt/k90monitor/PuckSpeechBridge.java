@@ -73,6 +73,7 @@ public final class PuckSpeechBridge {
     private final OkHttpClient localTtsClient;
     private volatile Call localTtsCall;
     private volatile WebSocket ttsSocket;
+    private final java.util.concurrent.atomic.AtomicLong ttsGeneration = new java.util.concurrent.atomic.AtomicLong();
     private volatile boolean ttsCancelled;
     private volatile boolean ttsFinished;
     private volatile JSONObject ttsUsage;
@@ -370,8 +371,9 @@ public final class PuckSpeechBridge {
     public void synthesize(String text, String apiKey, String resourceId, String speaker) {
         cancelTts();
         cancelLocalTts();
+        final long generation = ttsGeneration.get();
         String value = text == null ? "" : text.trim();
-        String key = apiKey == null ? "" : apiKey.trim();
+        String key = apiKey == null ? "" : apiKey.trim().replaceFirst("(?i)^Bearer\\s+", "");
         if (value.isEmpty()) {
             ttsEvent("error", "请输入需要朗读的文字");
             return;
@@ -392,6 +394,7 @@ public final class PuckSpeechBridge {
         ttsUsage = null;
         synchronized (ttsAudio) { ttsAudio.reset(); }
 
+        try {
         Request request = new Request.Builder()
                 .url(TTS_URL)
                 .header("X-Api-Key", key)
@@ -402,6 +405,7 @@ public final class PuckSpeechBridge {
 
         ttsSocket = client.newWebSocket(request, new WebSocketListener() {
             @Override public void onOpen(WebSocket socket, Response response) {
+                if (generation != ttsGeneration.get()) { socket.cancel(); return; }
                 try {
                     JSONObject audioParams = new JSONObject()
                             .put("format", "mp3")
@@ -426,7 +430,7 @@ public final class PuckSpeechBridge {
             }
 
             @Override public void onMessage(WebSocket socket, ByteString bytes) {
-                if (ttsCancelled || ttsFinished) return;
+                if (generation != ttsGeneration.get() || ttsCancelled || ttsFinished) return;
                 try {
                     TtsPacket packet = parseTtsFrame(bytes.toByteArray());
                     if (packet.error != null) {
@@ -452,11 +456,19 @@ public final class PuckSpeechBridge {
             }
 
             @Override public void onFailure(WebSocket socket, Throwable t, Response response) {
-                failTts("连接豆包 TTS 失败：" + safeMessage(t));
+                if (generation != ttsGeneration.get()) return;
+                String detail = response == null ? safeMessage(t)
+                        : "HTTP " + response.code() + "，请求编号 " + response.header("X-Tt-Logid", "未提供");
+                failTts("连接豆包 TTS 失败：" + detail);
+                if (response != null) response.close();
+            }
+
+            @Override public void onClosing(WebSocket socket, int code, String reason) {
+                socket.close(code, reason);
             }
 
             @Override public void onClosed(WebSocket socket, int code, String reason) {
-                if (!ttsCancelled && !ttsFinished) {
+                if (generation == ttsGeneration.get() && !ttsCancelled && !ttsFinished) {
                     synchronized (ttsAudio) {
                         if (ttsAudio.size() > 0) finishTts();
                         else failTts("豆包 TTS 连接提前关闭：" + reason);
@@ -466,8 +478,11 @@ public final class PuckSpeechBridge {
         });
 
         webView.postDelayed(() -> {
-            if (!ttsFinished && !ttsCancelled) failTts("豆包 TTS 请求超时");
+            if (generation == ttsGeneration.get() && !ttsFinished && !ttsCancelled) failTts("豆包 TTS 请求超时");
         }, 90_000);
+        } catch (Exception error) {
+            if (generation == ttsGeneration.get()) failTts("豆包 TTS 请求参数错误：请检查 Key、资源 ID 和音色 ID");
+        }
     }
 
     @JavascriptInterface
@@ -553,11 +568,12 @@ public final class PuckSpeechBridge {
 
     @JavascriptInterface
     public void cancelTts() {
+        ttsGeneration.incrementAndGet();
         ttsCancelled = true;
         ttsFinished = true;
         WebSocket socket = ttsSocket;
         ttsSocket = null;
-        if (socket != null) socket.close(1000, "TTS cancelled by page");
+        if (socket != null) socket.cancel();
     }
 
     private void finishTts() {
@@ -602,7 +618,9 @@ public final class PuckSpeechBridge {
     private void sendJs(String callback, JSONObject payload) {
         if (webView == null || payload == null) return;
         String script = "if(window." + callback + ")window." + callback + "(" + payload.toString() + ");";
+        final long generation = ttsGeneration.get();
         webView.post(() -> {
+            if ("onNativeTtsResult".equals(callback) && generation != ttsGeneration.get()) return;
             try { webView.evaluateJavascript(script, null); } catch (Throwable ignored) { }
         });
     }

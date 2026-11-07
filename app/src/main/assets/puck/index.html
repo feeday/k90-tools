@@ -652,7 +652,7 @@ function handleNativeTtsResult(message,engineName){
     ttsNotice=engineName+' 失败，已切换 Android 系统语音';updateMemoryStatus();
     beginSpeechRecord('Android 系统语音','系统默认引擎','默认',fallbackText);AndroidPuck.speakSystem(fallbackText);return;
    }
-   log(engineName+' 朗读失败：'+(message.message||'语音服务返回错误'),'TTS ERROR',false);return
+   log(engineName+' 朗读失败：'+(message.message||'语音服务返回错误'),'TTS ERROR',false);alert(engineName+'：'+(message.message||'语音服务返回错误'));return
   }
   const binary=atob(message.audioBase64||'');if(!binary.length)throw Error('语音服务没有返回音频');
   const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
@@ -720,7 +720,7 @@ function speakText(text,automatic=false){
  }
  $('btnTts').textContent=automatic?'⏳ 自动朗读中…':'⏳ 豆包合成中…';
  ttsNotice='';updateMemoryStatus();
- beginSpeechRecord('豆包 TTS',resourceId,speaker,value);AndroidPuck.synthesize(value,apiKey,resourceId,speaker);return true
+ beginSpeechRecord('豆包 TTS',resourceId,speaker,value);try{AndroidPuck.synthesize(value,apiKey,resourceId,speaker);return true}catch(error){recordSpeechResult({},'启动失败');resetTts();log('豆包朗读启动失败：'+error.message,'TTS ERROR',false);alert('豆包朗读启动失败：'+error.message);return false}
 }
 bind('btnTts',()=>{
  if(ttsBusy||nativeTtsPending){recordSpeechResult({},'用户停止');if(window.AndroidPuck){AndroidPuck.cancelTts();AndroidPuck.cancelLocalTts();AndroidPuck.cancelSystemTts()}resetTts();return}

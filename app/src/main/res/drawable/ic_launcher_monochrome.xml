@@ -2,7 +2,6 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <!-- Compact K mark, fully within the adaptive icon safe zone. -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M35,32 H44 V50 L62,32 H74 L52,54 L74,76 H62 L44,58 V76 H35 Z" />
+    <path android:fillColor="#FFFFFF" android:fillType="evenOdd"
+        android:pathData="M43,33 Q43,28 48,28 H60 Q65,28 65,33 V39 H74 Q79,39 79,44 V71 Q79,76 74,76 H34 Q29,76 29,71 V44 Q29,39 34,39 H43 Z M49,34 V39 H59 V34 Z M35,49 V53 H50 V59 H58 V53 H73 V49 H58 V47 H50 V49 Z" />
 </vector>
