@@ -70,7 +70,7 @@ test('speech removes nested, encoded and unfinished thinking, retaining Chinese,
 test('all speech engines receive filtered text',()=>{
  for(const engine of ['local','doubao','system']){
   let spoken;
-  const c={window:{},beginSpeechRecord(){},String,ttsBusy:false,nativeTtsPending:false,$:()=>({}),saveField:id=>({ttsProvider:engine==='local'?'local':'doubao',ttsApiKey:engine==='system'?'':'test'}[id]||''),updateMemoryStatus(){},AndroidPuck:{synthesizeLocal:t=>spoken=t,synthesize:t=>spoken=t,speakSystem:t=>spoken=t}};
+  const c={window:{},clearGeneratedSpeech(){},beginSpeechRecord(){},String,ttsBusy:false,nativeTtsPending:false,$:()=>({}),saveField:id=>({ttsProvider:engine==='local'?'local':'doubao',ttsApiKey:engine==='system'?'':'test'}[id]||''),updateMemoryStatus(){},AndroidPuck:{synthesizeLocal:t=>spoken=t,synthesize:t=>spoken=t,speakSystem:t=>spoken=t}};
   c.window.AndroidPuck=c.AndroidPuck;vm.createContext(c);
   vm.runInContext(html.slice(html.indexOf('function speechOnlyText('),html.indexOf("bind('btnTts',")),c);
   assert.equal(c.speakText('<think>secret</think>你好 English 123',true),true);
@@ -117,10 +117,21 @@ test('image description sends current image without history and displays only re
 });
 test('full reset clears secrets and memory only after confirmation, then uses native restart',async()=>{
  let allow=false;const actions=[];const fields={btnResetAll:{disabled:false}};
- const c={window:{},confirm:()=>allow,$:id=>fields[id],AndroidPuck:{cancelTts:()=>actions.push('stop'),cancelLocalTts(){},cancelSystemTts(){},saveTextFile:(name,mime,data)=>{assert.equal(JSON.parse(data).messages.length,0);actions.push('backup');return 'Download/K90-Tools/ai_chat_memory.json'}},resetTts(){},memoryArchiveData:()=>JSON.stringify({messages:c.chatContext}),chatContext:[{content:'private'}],localStorage:{clear:()=>actions.push('local')},sessionStorage:{clear:()=>actions.push('session')},callRecords:[{private:true}],speechRequest:{},clearMedia(){},resetAudio(){},txt:{value:'private'},document:{querySelectorAll:()=>[]},AndroidSettings:{resetTools:()=>actions.push('restart')},alert:msg=>{throw Error(msg)}};
+ const c={window:{},confirm:()=>allow,$:id=>fields[id],AndroidPuck:{cancelTts:()=>actions.push('stop'),cancelLocalTts(){},cancelSystemTts(){},saveTextFile:(name,mime,data)=>{assert.equal(JSON.parse(data).messages.length,0);actions.push('backup');return 'Download/K90-Tools/ai_chat_memory.json'}},resetTts(){},clearGeneratedSpeech(){},memoryArchiveData:()=>JSON.stringify({messages:c.chatContext}),chatContext:[{content:'private'}],localStorage:{clear:()=>actions.push('local')},sessionStorage:{clear:()=>actions.push('session')},callRecords:[{private:true}],speechRequest:{},clearMedia(){},resetAudio(){},txt:{value:'private'},document:{querySelectorAll:()=>[]},AndroidSettings:{resetTools:()=>actions.push('restart')},alert:msg=>{throw Error(msg)}};
  c.window.AndroidPuck=c.AndroidPuck;c.window.AndroidSettings=c.AndroidSettings;
  vm.createContext(c);vm.runInContext(html.slice(html.indexOf('let resettingTools=false;'),html.indexOf("bind('btnResetAll',")),c);
  await c.resetAllTools();assert.equal(actions.length,0);
  allow=true;await c.resetAllTools();
  assert.deepEqual(actions,['stop','backup','local','session','restart']);assert.equal(c.txt.value,'');assert.equal(c.callRecords.length,0);
+});
+
+test('generated speech is saved using its blob and proper extension',async()=>{
+ const fields={ttsSavePanel:{hidden:true},ttsSaveStatus:{},btnSaveTts:{disabled:false}};
+ let saved;
+ const c={Date,$:id=>fields[id],alert:m=>{throw Error(m)},downloadBlob:async(blob,name)=>{saved={blob,name};return 'Download/K90-Tools/'+name}};
+ vm.createContext(c);vm.runInContext(html.slice(html.indexOf('let generatedSpeech=null;'),html.indexOf("bind('btnSaveTts',")),c);
+ const blob={type:'audio/wav',size:2048};c.retainGeneratedSpeech(blob,'本地 TTS');
+ assert.equal(fields.ttsSavePanel.hidden,false);await c.saveGeneratedSpeech();
+ assert.equal(saved.blob,blob);assert.match(saved.name,/\.wav$/);assert.match(fields.ttsSaveStatus.textContent,/已保存/);
+ assert.equal(fields.btnSaveTts.disabled,false);c.clearGeneratedSpeech();assert.equal(fields.ttsSavePanel.hidden,true);
 });
