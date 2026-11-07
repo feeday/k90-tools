@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="UTF-8">
-<meta name="description" content="Puck Chat：AI 对话、文本处理、图像生成、音视频工具，以及豆包实时语音识别与语音合成。"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="referrer" content="strict-origin-when-cross-origin"><title>Puck Chat · AI 对话与多媒体工具</title>
+<meta name="description" content="K90-Tools：AI 对话、文本处理、图像生成、音视频工具，以及豆包和本地语音合成。"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="referrer" content="strict-origin-when-cross-origin"><title>K90-Tools · AI 工具箱</title>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script><script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script><script src="https://cdn.jsdelivr.net/npm/exifr/dist/full.umd.js"></script><script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script><script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script><script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script><link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <script>if(/MicroMessenger/i.test(navigator.userAgent)){document.documentElement.classList.add('wechat-client')}</script>
 <style>
@@ -33,22 +33,16 @@ html.wechat-client #mainToolsGrid > a[href*="speedtest.cn"][data-wechat-keep]{or
 html.wechat-client #selectTrigger>span:last-child,html.wechat-client #selectOptions,html.wechat-client #searchClear{display:none!important}
 html.wechat-client #selectTrigger{cursor:default;pointer-events:none;min-width:80px;padding:0 6px 0 9px}
 html.wechat-client #searchInput{padding:0 7px}
-html.wechat-client #externalSearchBtn{width:46px;flex-basis:46px;display:flex;align-items:center;justify-content:center;font-size:12px}
-html.wechat-client #externalSearchBtn .search-icon{display:none}
-html.wechat-client #externalSearchBtn .wechat-search-label{display:inline!important}
+html.wechat-client 
+html.wechat-client 
+html.wechat-client 
 
-.speech-inline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
-.speech-inline #btnMic{flex:0 0 auto;padding:10px 14px}
-#asrStatus{font-size:11px;color:#888;line-height:1.6;flex:1;min-width:150px}
-#asrLiveText{display:none;margin-top:9px;padding:10px 12px;background:#050505;border:1px dashed #00f0ff;border-radius:6px;color:#00f0ff;font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
-#asrLiveText:not(:empty){display:block}
-#btnMic.is-recording{border-color:#ff4b4b;color:#ff7777;background:rgba(255,60,60,.08)}
 .speech-settings summary{cursor:pointer;color:#00f0ff;font-size:13px;font-weight:bold;outline:none}
 .speech-settings .speech-config-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;margin-top:12px}
 .speech-settings label{display:block;min-width:0;color:#888;font-size:11px}
 .speech-settings .input-style{margin:6px 0 8px;padding:10px 9px;font-size:12px}
 .speech-settings .small-note{margin-top:8px}
-@media(max-width:420px){.speech-settings .speech-config-grid{grid-template-columns:1fr}.speech-inline #btnMic{width:100%}}
+@media(max-width:420px){.speech-settings .speech-config-grid{grid-template-columns:1fr}}
 
 
 /* PC 桌面布局 v2：按真实 DOM 直接子元素分区，移动端样式不参与 */
@@ -75,7 +69,7 @@ html.wechat-client #externalSearchBtn .wechat-search-label{display:inline!import
       "audio audio"
       "viewport viewport"
       "config speech"
-      "search upload";
+      "upload upload";
     gap: 18px 20px;
     align-items: start;
   }
@@ -340,13 +334,12 @@ html,body{max-width:100%;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:
   .input-style{min-width:0;max-width:100%}
 }
 </style></head><body><div class="app-container">
-<div class="card"><div class="ip-info-wrapper"><a class="ip-info-link" href="http://ping0.cc/" target="_blank" rel="noopener noreferrer"><img class="ip-info-image" src="https://tool.lu/netcard/" alt="IP 信息" referrerpolicy="no-referrer" loading="lazy"></a></div><div id="stats"><span id="total">总数: 0</span><span id="chinese">汉字: 0</span><span id="punctuation">标点: 0</span><span id="alphabet">字母: 0</span><span id="numbers">数字: 0</span><span id="duplicate">重复: 0</span></div><textarea id="universalText" class="input-style" placeholder="🚀 系统就绪，等待输入指令或粘贴数据源..."></textarea><div class="speech-inline"><button class="btn btn-tucao" id="btnMic" type="button">🎙 麦克风实时录音</button><span id="asrStatus">点击开始，识别完成后将替换文本框内容</span></div><div id="asrLiveText" aria-live="polite"></div></div>
-<div class="card"><div class="button-grid" id="mainToolsGrid" style="margin-top:15px;grid-template-columns:repeat(3,minmax(0,1fr))"><button class="btn" id="btnClearOutput" data-wechat-keep>复制重置</button><button class="btn" id="btnCombinedAction" data-wechat-keep>AI发送</button><button class="btn" id="btnTts">语音朗读</button><button class="btn" id="optimize-btn" data-wechat-keep>自然排版</button><button class="btn" id="btnExtractPoints" data-wechat-keep>提炼要点</button><button class="btn" id="btnMdPreview">MD预览</button><button class="btn" id="btnExtractLinks">提链去重</button><button class="btn" id="btnHtmlPreview">HTML预览</button><button class="btn" id="btnFrames" data-wechat-keep>视频分离</button><button class="btn" id="btnAudioEdit" data-wechat-keep>音频编辑</button><button class="btn" id="btnDecodeQR" data-wechat-keep title="输入文字生成二维码，上传二维码图片后点击识别">二维码工具</button><button class="btn" id="btnImportMemory" data-wechat-keep>导入记忆</button><button class="btn" id="btnExportMemory" data-wechat-keep>导出记忆</button><button class="btn btn-danger" id="btnClearMemory" data-wechat-keep>清空记忆</button><button class="btn btn-tucao" id="btnShareImage">图像分享</button><a class="btn" data-wechat-keep href="https://pan.quark.cn/s/7d5d8cd6f065#/list/share/4e76c517a26349739cc863af6663c9b2" target="_blank" rel="noopener">模型下载</a><a class="btn" id="linkZhuqueDetect" data-wechat-keep href="https://matrix.tencent.com/ai-detect/" target="_blank" rel="noopener noreferrer">朱雀鉴伪</a><a class="btn" href="https://link-ai.tech/console?share=9mepei" target="_blank" rel="noopener">国内模型</a><a class="btn" data-wechat-keep href="https://poixe.com/pricing?i=token" target="_blank" rel="noopener">词元代理</a><a class="btn" data-wechat-keep href="https://apimart.ai/register?aff=token" target="_blank" rel="noopener">生图代理</a><a class="btn" data-wechat-keep href="https://pd.qq.com/g/pd54620835/post/B_1db1e06a18440a001441152212553667950X60?subc=744797654" target="_blank" rel="noopener noreferrer">免费密钥</a><a class="btn" data-wechat-keep href="https://www.speedtest.cn/" target="_blank" rel="noopener noreferrer">测网速</a><a class="btn" href="http://cpu.jy6d.com/" target="_blank" rel="noopener">测处理器</a><a class="btn" href="https://hf-mirror.com/datasets/feeday/datxy/tree/main/apk" target="_blank" rel="noopener">安卓应用</a></div><input hidden type="file" id="memoryFileInput" accept="application/json,.json"><div id="aiMemoryStatus" class="sub-text" style="font-size:11px;margin:8px 0;line-height:1.6">AI 对话记忆：正在读取…</div><div id="responseWrap"><div style="display:flex;justify-content:space-between;align-items:center"><span class="sub-text" id="respStatus" style="font-size:12px">等待执行指令...</span><button class="btn" id="btnHideResp" style="padding:2px 8px;font-size:11px">隐藏日志</button></div><div id="response"></div></div></div>
+<div class="card"><div id="stats"><span id="total">总数: 0</span><span id="chinese">汉字: 0</span><span id="punctuation">标点: 0</span><span id="alphabet">字母: 0</span><span id="numbers">数字: 0</span><span id="duplicate">重复: 0</span></div><textarea id="universalText" class="input-style" placeholder="🚀 系统就绪，等待输入指令或粘贴数据源..."></textarea></div>
+<div class="card"><div class="button-grid" id="mainToolsGrid" style="margin-top:15px;grid-template-columns:repeat(3,minmax(0,1fr))"><button class="btn" id="btnClearOutput" data-wechat-keep>复制重置</button><button class="btn" id="btnCombinedAction" data-wechat-keep>AI发送</button><button class="btn" id="btnTts">语音朗读</button><button class="btn" id="optimize-btn" data-wechat-keep>自然排版</button><button class="btn" id="btnExtractPoints" data-wechat-keep>提炼要点</button><button class="btn" id="btnMdPreview">MD预览</button><button class="btn" id="btnExtractLinks">提链去重</button><button class="btn" id="btnHtmlPreview">HTML预览</button><button class="btn" id="btnFrames" data-wechat-keep>视频分离</button><button class="btn" id="btnAudioEdit" data-wechat-keep>音频编辑</button><button class="btn" id="btnDecodeQR" data-wechat-keep title="输入文字生成二维码，上传二维码图片后点击识别">二维码工具</button><button class="btn" id="btnImportMemory" data-wechat-keep>导入记忆</button><button class="btn" id="btnExportMemory" data-wechat-keep>导出记忆</button><button class="btn btn-danger" id="btnClearMemory" data-wechat-keep>清空记忆</button></div><input hidden type="file" id="memoryFileInput" accept="application/json,.json"><div id="aiMemoryStatus" class="sub-text" style="font-size:11px;margin:8px 0;line-height:1.6">AI 对话记忆：正在读取…</div><div id="responseWrap"><div style="display:flex;justify-content:space-between;align-items:center"><span class="sub-text" id="respStatus" style="font-size:12px">等待执行指令...</span><button class="btn" id="btnHideResp" style="padding:2px 8px;font-size:11px">隐藏日志</button></div><div id="response"></div></div></div>
 <div class="card" id="audioLabCard" hidden><div class="audio-title">🎛️ AUDIO WORKBENCH <button class="btn" id="audioLabClose" style="float:right;padding:5px 12px">收起</button></div><input id="audioLabFile" type="file" accept="audio/*,video/*,.wav,.mp3,.flac,.m4a,.ogg,.mp4,.webm" hidden><div class="audio-inline-buttons"><button class="btn" id="audioLabChoose">导入音视频</button><button class="btn" id="audioLabKeep" disabled>✂ 保留选段</button><button class="btn" id="audioLabUndo" disabled>撤销裁剪</button></div><div id="audioLabName" class="audio-file-name">暂无音频。可以使用页面底部上传的音视频，或在此导入。</div><canvas id="audioLabWave" class="audio-wave" height="105"></canvas><audio id="audioLabPlayer" controls></audio><div class="audio-row"><label>开始时间（秒）<input id="audioLabStart" class="input-style" type="number" step=".001" min="0" value="0"></label><label>结束时间（秒）<input id="audioLabEnd" class="input-style" type="number" step=".001" min="0" value="0"></label></div><div class="audio-row three"><label>增益 dB<input id="audioLabGain" class="input-style" type="number" value="0" min="-60" max="24"></label><label>淡入（秒）<input id="audioLabFadeIn" class="input-style" type="number" value="0" min="0" step=".1"></label><label>淡出（秒）<input id="audioLabFadeOut" class="input-style" type="number" value="0" min="0" step=".1"></label></div><label style="font-size:12px;color:#888"><input type="checkbox" id="audioLabNormalize">峰值归一化（98%）</label><div class="audio-row"><label>导出范围<select id="audioLabScope" class="input-style"><option value="selection">当前选段</option><option value="full">全部音频</option></select></label><label>导出格式<select id="audioLabFormat" class="input-style"><option value="mp3">MP3（192 kbps）</option><option value="wav">WAV（PCM 无压缩）</option><option value="flac">FLAC（无损）</option><option value="m4a">M4A（AAC）</option><option value="aac">AAC</option><option value="ogg">OGG</option><option value="opus">OPUS</option><option value="webm">WebM 音频</option></select></label></div><div class="audio-inline-buttons"><button class="btn" id="audioLabPreview" disabled>▶ 试听选段</button><button class="btn btn-tucao" id="audioLabExport" disabled>↓ 导出音频</button></div><p class="audio-hint">拖动波形选择音频。WAV、MP3 在本地处理，其他格式尝试加载 FFmpeg WebAssembly，音视频不会主动上传本站服务器。</p><div id="audioLabStatus" class="audio-status">准备就绪。</div></div>
-<div class="card" id="viewportCard"><div class="ping-box" id="pingToggle"><div class="ping-site" id="siteName">百度</div><div class="ping-ms" id="pingText">检测中...</div><div style="color:#00f0ff;font-size:12px">切换节点 ⌄</div></div><div class="ping-desc"><span>LINK LATENCY <span id="descSite">百度</span>:</span><span id="performance-result">LOADING...</span></div><div class="ping-chart-wrap"><canvas id="chart"></canvas></div><div id="imageDisplayContainer" style="display:none;flex-direction:column;align-items:center;margin-top:15px;width:100%"><div id="originalImgWrapper" style="width:100%;text-align:center;margin-bottom:15px"><img id="displayedImage" style="max-width:100%;border-radius:6px;border:1px solid #333"></div><div id="modifiedImgWrapper" style="width:100%;text-align:center;display:none;margin-bottom:15px"><img id="modifiedImage" style="max-width:100%;border-radius:6px;border:1px solid #00f0ff"></div><div id="imageMetadataPreview" class="sub-text" style="display:none;width:100%;max-height:250px;overflow:auto;white-space:pre-wrap;word-break:break-word;text-align:left;background:#050505;border:1px dashed #333;padding:12px;border-radius:6px;font-size:11px;margin-bottom:10px"></div><a id="generatedImageLink" class="btn btn-tucao" style="display:none;width:100%;margin-bottom:10px" target="_blank" rel="noopener">↗ OPEN GENERATED IMAGE</a><div id="imageTimeLabel" class="sub-text"></div><div id="framePager" class="sub-text" style="display:none;margin-top:5px"></div><div class="button-grid" id="frameControls" style="display:none;margin-top:15px;width:100%"><button class="btn" id="prevButton">← 上一帧</button><button class="btn" id="nextButton">下一帧 →</button></div><div class="button-grid" id="editButtons" style="display:none;margin-top:15px;width:100%"><button class="btn" id="btnInvert">反色处理</button><button class="btn" id="btnGray">灰度去除</button><button class="btn" id="btnRestore">源图还原</button></div></div><div id="mediaPreview" style="margin-top:15px;display:flex;flex-direction:column;align-items:center;width:100%"></div></div>
-<div class="footer-banner"><input id="apiProxy" class="input-style" style="display:none" placeholder="🌐 PROXY_URL (留空则默认接口)"><input id="apiKey" type="password" class="input-style" placeholder="🔑 poixe.com API Key（文本模型）"><input id="imageApiKey" type="password" class="input-style" style="display:none" placeholder="🎨 apimart.ai API Key（图像模型）"><input id="customApiUrl" class="input-style" style="display:none" placeholder="🌐 API_BASE 例如 http://192.168.31.111:5001/v1/"><input id="customModelName" class="input-style" style="display:none" placeholder="🤖 MODEL_NAME 例如 Qwen3.5-9B"><input id="customApiKey" class="input-style" type="password" style="display:none" placeholder="🔑 CUSTOM_KEY 无鉴权可留空"><input id="hfApiKey" class="input-style" type="password" style="display:none" placeholder="🤗 Hugging Face Token（可留空）"><input id="imgurClientId" class="input-style" style="display:none" placeholder="🖼️ IMGUR CLIENT ID（分享图像时需要）"><select id="hfGenerationMode" class="input-style" style="display:none"><option value="auto">MODE: 自动判断生图 / 改图</option><option value="Create an image">MODE: 生图</option><option value="Edit an image">MODE: 改图</option><option value="Transparent PNG">MODE: 透明 PNG</option></select><div id="imageOptionsWrapper" style="display:none"><select id="imageResolution" class="input-style"><option value="1k">RES: 1K STANDARD</option><option value="2k">RES: 2K HIGH-DEF</option><option value="4k">RES: 4K ULTRA-HD</option></select><select id="imgSize" class="input-style"><option value="1:1">SIZE: 1:1 正方形</option><option value="3:2">SIZE: 3:2 横图</option><option value="2:3">SIZE: 2:3 竖图</option><option value="4:3">SIZE: 4:3 横图</option><option value="3:4">SIZE: 3:4 竖图</option><option value="16:9">SIZE: 16:9 横图</option><option value="9:16">SIZE: 9:16 竖图</option><option value="21:9">SIZE: 21:9 宽屏</option></select></div><select id="unifiedModel" class="input-style"><optgroup label="🧠 自定义对话端点"><option value="custom-chat">自定义本地云端模型</option></optgroup><optgroup label="💬 文本模型 · poixe.com"><option value="deepseek-v4-flash" selected>DeepSeek V4 Flash</option></optgroup><optgroup label="🎨 图像模型 · apimart.ai"><option value="gpt-image-2">GPT Image 2</option></optgroup><optgroup label="🤗 Hugging Face"><option value="hf-qwen-image">HF Qwen Image 2.1</option></optgroup></select></div>
-<div class="card speech-settings"><details><summary>🎙 豆包语音服务设置</summary><p class="small-note">API Key 保存在当前浏览器。若 ASR 与 TTS 使用同一个 Key，只填写 ASR Key 即可自动复用；也可以在服务端 .env 中配置默认 Key。</p><div class="speech-config-grid"><label>ASR API Key<input id="asrApiKey" class="input-style" type="password" placeholder="豆包流式语音识别 API Key"></label><label>TTS API Key<input id="ttsApiKey" class="input-style" type="password" placeholder="豆包语音合成 API Key（可留空复用 ASR）"></label><label>ASR 资源 ID<input id="asrResourceId" class="input-style" value="volc.seedasr.sauc.duration" placeholder="volc.seedasr.sauc.duration"></label><label>TTS 资源 ID<input id="ttsResourceId" class="input-style" value="seed-tts-2.0" placeholder="seed-tts-2.0"></label><label>默认音色 ID<input id="ttsSpeaker" class="input-style" value="zh_female_vv_uranus_bigtts" placeholder="豆包音色 ID"></label></div><button class="btn btn-ai" id="btnSaveSpeechSettings" type="button">保存语音设置</button></details></div><div class="search-wrapper"><div class="custom-select" id="customSelect"><div class="select-trigger" id="selectTrigger" style="cursor:default;pointer-events:none"><span id="currentEngineText">哔哩哔哩</span></div><input hidden id="searchEngineValue" value="https://search.bilibili.com/all?keyword="></div><div class="search-inner-divider"></div><input class="search-input" id="searchInput" placeholder="搜索哔哩哔哩..." autocomplete="off"><span id="searchClear" style="padding:7px;color:#666;cursor:pointer">✕</span><div class="external-search-btn" id="externalSearchBtn" title="搜索"><span class="search-icon">⌕</span><span class="wechat-search-label" style="display:none">搜索</span></div></div><input type="file" id="universalFile" class="input-style" accept="image/*,audio/*,video/*"></div></div>
-<div class="ping-modal" id="pingModal"><div class="ping-sheet" id="pingSheet"><div class="item" data-url="https://www.baidu.com" data-name="baidu.com">BAIDU_UPLINK</div><div class="item" data-url="https://weibo.com" data-name="weibo.com">WEIBO_UPLINK</div><div class="item" data-url="https://www.douyin.com" data-name="douyin.com">DOUYIN_UPLINK</div><div class="item cancel">ABORT</div></div></div>
+<div class="card" id="viewportCard"><div id="imageDisplayContainer" style="display:none;flex-direction:column;align-items:center;margin-top:15px;width:100%"><div id="originalImgWrapper" style="width:100%;text-align:center;margin-bottom:15px"><img id="displayedImage" style="max-width:100%;border-radius:6px;border:1px solid #333"></div><div id="modifiedImgWrapper" style="width:100%;text-align:center;display:none;margin-bottom:15px"><img id="modifiedImage" style="max-width:100%;border-radius:6px;border:1px solid #00f0ff"></div><div id="imageMetadataPreview" class="sub-text" style="display:none;width:100%;max-height:250px;overflow:auto;white-space:pre-wrap;word-break:break-word;text-align:left;background:#050505;border:1px dashed #333;padding:12px;border-radius:6px;font-size:11px;margin-bottom:10px"></div><div id="imageTimeLabel" class="sub-text"></div><div id="framePager" class="sub-text" style="display:none;margin-top:5px"></div><div class="button-grid" id="frameControls" style="display:none;margin-top:15px;width:100%"><button class="btn" id="prevButton">← 上一帧</button><button class="btn" id="nextButton">下一帧 →</button></div><div class="button-grid" id="editButtons" style="display:none;margin-top:15px;width:100%"><button class="btn" id="btnInvert">反色处理</button><button class="btn" id="btnGray">灰度去除</button><button class="btn" id="btnRestore">源图还原</button></div></div><div id="mediaPreview" style="margin-top:15px;display:flex;flex-direction:column;align-items:center;width:100%"></div></div>
+<div class="footer-banner"><input id="apiProxy" class="input-style" style="display:none" placeholder="🌐 PROXY_URL (留空则默认接口)"><input id="apiKey" type="password" class="input-style" placeholder="🔑 poixe.com API Key（文本模型）"><input id="imageApiKey" type="password" class="input-style" style="display:none" placeholder="🎨 apimart.ai API Key（图像模型）"><input id="customApiUrl" class="input-style" style="display:none" placeholder="🌐 API_BASE 例如 http://192.168.31.111:5001/v1/"><input id="customModelName" class="input-style" style="display:none" placeholder="🤖 MODEL_NAME 例如 Qwen3.5-9B"><input id="customApiKey" class="input-style" type="password" style="display:none" placeholder="🔑 CUSTOM_KEY 无鉴权可留空"><input id="hfApiKey" class="input-style" type="password" style="display:none" placeholder="🤗 Hugging Face Token（可留空）"><select id="hfGenerationMode" class="input-style" style="display:none"><option value="auto">MODE: 自动判断生图 / 改图</option><option value="Create an image">MODE: 生图</option><option value="Edit an image">MODE: 改图</option><option value="Transparent PNG">MODE: 透明 PNG</option></select><div id="imageOptionsWrapper" style="display:none"><select id="imageResolution" class="input-style"><option value="1k">RES: 1K STANDARD</option><option value="2k">RES: 2K HIGH-DEF</option><option value="4k">RES: 4K ULTRA-HD</option></select><select id="imgSize" class="input-style"><option value="1:1">SIZE: 1:1 正方形</option><option value="3:2">SIZE: 3:2 横图</option><option value="2:3">SIZE: 2:3 竖图</option><option value="4:3">SIZE: 4:3 横图</option><option value="3:4">SIZE: 3:4 竖图</option><option value="16:9">SIZE: 16:9 横图</option><option value="9:16">SIZE: 9:16 竖图</option><option value="21:9">SIZE: 21:9 宽屏</option></select></div><select id="unifiedModel" class="input-style"><optgroup label="🧠 自定义对话端点"><option value="custom-chat">自定义本地云端模型</option></optgroup><optgroup label="💬 文本模型 · poixe.com"><option value="deepseek-v4-flash" selected>DeepSeek V4 Flash</option></optgroup><optgroup label="🎨 图像模型 · apimart.ai"><option value="gpt-image-2">GPT Image 2</option></optgroup><optgroup label="🤗 Hugging Face"><option value="hf-qwen-image">HF Qwen Image 2.1</option></optgroup></select></div>
+<div class="card speech-settings"><details><summary>🔊 语音朗读设置</summary><p class="small-note">支持豆包 TTS 和本地 TTS。选择本地服务时由 Android 原生网络层请求，不受 WebView HTTPS 混合内容和浏览器 CORS 限制。</p><div class="speech-config-grid"><label>朗读引擎<select id="ttsProvider" class="input-style"><option value="doubao">豆包 TTS</option><option value="local">本地 TTS</option></select></label><label>本地 TTS 地址<input id="localTtsUrl" class="input-style" list="localTtsPresets" value="http://127.0.0.1:8080/api/tts" placeholder="http://127.0.0.1:8080/api/tts"><datalist id="localTtsPresets"><option value="http://127.0.0.1:8080/api/tts"></option><option value="http://192.168.31.11:8080/api/tts"></option></datalist></label><label>本地音色（可选）<input id="localTtsVoice" class="input-style" placeholder="voice，可留空"></label><label>豆包 TTS API Key<input id="ttsApiKey" class="input-style" type="password" placeholder="豆包语音合成 API Key"></label><label>豆包 TTS 资源 ID<input id="ttsResourceId" class="input-style" value="seed-tts-2.0" placeholder="seed-tts-2.0"></label><label>豆包默认音色 ID<input id="ttsSpeaker" class="input-style" value="zh_female_vv_uranus_bigtts" placeholder="豆包音色 ID"></label></div><button class="btn btn-ai" id="btnSaveSpeechSettings" type="button">保存语音设置</button></details></div><input type="file" id="universalFile" class="input-style" accept="image/*,audio/*,video/*"></div></div>
 <script>
 'use strict';
 const $=id=>document.getElementById(id), txt=$('universalText'), fileEl=$('universalFile');
@@ -357,8 +350,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function log(message,status='DONE',ok=true){$('responseWrap').style.display='block';$('respStatus').textContent=status;$('respStatus').style.color=ok?'#00ff41':'#ff2a2a';$('response').textContent=message}
 function bind(id,fn){$(id)?.addEventListener('click',fn)}
 function saveField(id){let value=$(id).value.trim();try{localStorage.setItem('tcq_html_'+id,value)}catch{}return value}
-for(let id of ['apiProxy','apiKey','imageApiKey','customApiUrl','customModelName','customApiKey','hfApiKey','imgurClientId','imageResolution','asrApiKey','ttsApiKey','asrResourceId','ttsResourceId','ttsSpeaker']){try{$(id).value=localStorage.getItem('tcq_html_'+id)||$(id).value}catch{}$(id).addEventListener('change',()=>saveField(id))}bind('btnSaveSpeechSettings',()=>{for(const id of ['asrApiKey','ttsApiKey','asrResourceId','ttsResourceId','ttsSpeaker'])saveField(id);log('豆包语音设置已保存到当前浏览器','SAVED')});
-function updateStats(){const t=txt.value;const words=t.split(/[\s.,/#!$%^&*;:{}=\-_`~()。,、；：？！…—·「」『』（）［］【】《》〈〉"']+/).filter(Boolean);const counts={};words.forEach(w=>counts[w]=(counts[w]||0)+1);const pairs={total:t.length,chinese:(t.match(/[\u3400-\u9fff]/g)||[]).length,punctuation:(t.match(/[.,/#!$%^&*;:{}=\-_`~()。,、；：？！…—·「」『』（）［］【】《》〈〉"']/g)||[]).length,alphabet:(t.match(/[a-zA-Z]/g)||[]).length,numbers:(t.match(/\d/g)||[]).length,duplicate:Object.values(counts).filter(v=>v>1).reduce((a,b)=>a+b,0)};for(const [id,n] of Object.entries(pairs))$(id).textContent=({total:'总数',chinese:'汉字',punctuation:'标点',alphabet:'字母',numbers:'数字',duplicate:'重复'}[id])+': '+n}
+for(let id of ['apiProxy','apiKey','imageApiKey','customApiUrl','customModelName','customApiKey','hfApiKey','imageResolution','ttsProvider','localTtsUrl','localTtsVoice','ttsApiKey','ttsResourceId','ttsSpeaker']){try{$(id).value=localStorage.getItem('tcq_html_'+id)||$(id).value}catch{}$(id).addEventListener('change',()=>saveField(id))}bind('btnSaveSpeechSettings',()=>{for(const id of ['ttsProvider','localTtsUrl','localTtsVoice','ttsApiKey','ttsResourceId','ttsSpeaker'])saveField(id);log('语音朗读设置已保存到当前设备','SAVED')});function updateStats(){const t=txt.value;const words=t.split(/[\s.,/#!$%^&*;:{}=\-_`~()。,、；：？！…—·「」『』（）［］【】《》〈〉"']+/).filter(Boolean);const counts={};words.forEach(w=>counts[w]=(counts[w]||0)+1);const pairs={total:t.length,chinese:(t.match(/[\u3400-\u9fff]/g)||[]).length,punctuation:(t.match(/[.,/#!$%^&*;:{}=\-_`~()。,、；：？！…—·「」『』（）［］【】《》〈〉"']/g)||[]).length,alphabet:(t.match(/[a-zA-Z]/g)||[]).length,numbers:(t.match(/\d/g)||[]).length,duplicate:Object.values(counts).filter(v=>v>1).reduce((a,b)=>a+b,0)};for(const [id,n] of Object.entries(pairs))$(id).textContent=({total:'总数',chinese:'汉字',punctuation:'标点',alphabet:'字母',numbers:'数字',duplicate:'重复'}[id])+': '+n}
 txt.addEventListener('input',updateStats);
 function updateMemoryStatus(){$('aiMemoryStatus').textContent='AI 对话记忆：'+chatContext.filter(m=>m.role==='assistant').length+' 轮 / '+chatContext.length+' 条消息（仅此浏览器保存，支持 JSON）'}
 function normalizeMemory(raw){const a=Array.isArray(raw)?raw:raw?.messages;if(!Array.isArray(a))throw Error('记忆 JSON 必须含 messages 数组');return a.slice(-MAX_MEMORY).filter(m=>['user','assistant','system'].includes(m?.role)).map(m=>({role:m.role,content:typeof m.content==='string'?m.content:Array.isArray(m.content)?m.content.map(p=>p.text||'[历史图片已省略]').join('\n'):'',...(m.model?{model:String(m.model)}:{})}))}
@@ -377,111 +369,13 @@ async function apiJson(url,opts){let r;try{r=await fetch(url,opts)}catch(e){thro
 async function imageBlob(src){if(!src)throw Error('请先选择图片');let r=await fetch(src);if(!r.ok)throw Error('图像读取失败 HTTP '+r.status);return r.blob()}
 async function optimizeImage(src,max=1536){const blob=await imageBlob(src),obj=URL.createObjectURL(blob);try{const img=new Image();await new Promise((ok,bad)=>{img.onload=ok;img.onerror=bad;img.src=obj});const ratio=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*ratio));c.height=Math.max(1,Math.round(img.naturalHeight*ratio));c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.85)}finally{URL.revokeObjectURL(obj)}}
 function imageResult(data){const d=Array.isArray(data?.data)?data.data[0]:data?.data||data;const values=[d?.result?.images?.[0]?.url?.[0],d?.result?.images?.[0]?.url,d?.result?.image_urls?.[0],d?.result?.url,d?.result?.image_url,d?.images?.[0]?.url?.[0],d?.images?.[0]?.url,d?.url,d?.image_url,d?.data?.[0]?.url];return values.find(v=>typeof v==='string'&&/^(https?:\/\/|data:image\/)/i.test(v))||''}
-function setupImage(url,edited=false){if(edited){modifiedImgSrc=url;$('modifiedImage').src=url;$('modifiedImgWrapper').style.display='block'}else{originalImgSrc=url;modifiedImgSrc='';$('displayedImage').src=url;$('modifiedImgWrapper').style.display='none'}$('imageDisplayContainer').style.display='flex';$('editButtons').style.display='grid';$('generatedImageLink').style.display=/^https?:\/\//.test(url)?'inline-flex':'none';$('generatedImageLink').href=url;onModelChange()}
+function setupImage(url,edited=false){if(edited){modifiedImgSrc=url;$('modifiedImage').src=url;$('modifiedImgWrapper').style.display='block'}else{originalImgSrc=url;modifiedImgSrc='';$('displayedImage').src=url;$('modifiedImgWrapper').style.display='none'}$('imageDisplayContainer').style.display='flex';$('editButtons').style.display='grid';onModelChange()}
 async function pollImage(base,key,id){for(let i=0;i<45;i++){await sleep(i?4000:5000);const d=await apiJson(base+'/v1/tasks/'+encodeURIComponent(id),{headers:{Authorization:'Bearer '+key}}),v=Array.isArray(d.data)?d.data[0]:d.data||d,s=String(v.status||d.status||'').toLowerCase(),url=imageResult(d);$('respStatus').textContent='RENDER: '+(s||'QUEUED')+' ['+(i+1)+'/45]';if(url&&(!s||['completed','success','succeeded','finished'].includes(s)))return url;if(['error','failed','cancelled','canceled'].includes(s))throw Error(JSON.stringify(v.error||d.error||s))}throw Error('任务超时，任务号：'+id)}
 function getOutputTokenCount(usage,answer){const values=[usage?.completion_tokens,usage?.output_tokens,usage?.completionTokens,usage?.generated_tokens];for(const value of values){if(value!==undefined&&value!==null&&Number.isFinite(Number(value))&&Number(value)>=0)return{count:Number(value),estimated:false}}const total=Number(usage?.total_tokens),input=Number(usage?.prompt_tokens);if(usage?.total_tokens!=null&&usage?.prompt_tokens!=null&&Number.isFinite(total)&&Number.isFinite(input)&&total>=input)return{count:total-input,estimated:false};const cjk=(answer.match(/[\u3400-\u9fff]/g)||[]).length,other=answer.replace(/[\u3400-\u9fff]/g,'').length;return{count:Math.max(1,Math.round(cjk+other/4)),estimated:true}}async function runAi(){const m=$('unifiedModel').value,prompt=txt.value.trim(),src=modifiedImgSrc||originalImgSrc,hasImage=!!src,btn=$('btnCombinedAction');if(!prompt&&!hasImage)return alert('请填写提示词或选择图片');btn.disabled=true;log('正在连接 API…','CONNECTING');const t=performance.now();try{if(m==='hf-qwen-image'){await runHf(prompt,src);return}if(IMAGE_MODELS.includes(m)){const key=saveField('imageApiKey');if(!key)throw Error('请先填写 apimart.ai API Key');const base=getBase(m);const body={model:m,prompt:prompt||'请基于提供的图片生成',n:1,size:$('imgSize').value};if(m==='gpt-image-2')body.resolution=$('imageResolution').value;if(hasImage)body.image_urls=[await optimizeImage(src)];const d=await apiJson(base+'/v1/images/generations',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(body)});let result=imageResult(d);if(!result){const record=Array.isArray(d.data)?d.data[0]:d.data||d;const id=record.task_id||record.id||d.task_id;if(!id)throw Error('没有返回图片链接或任务 ID');result=await pollImage(base,key,id)}setupImage(result,hasImage);log('图片生成完成 · '+((performance.now()-t)/1000).toFixed(2)+' 秒','RENDER COMPLETE');return}
 let endpoint,model,key='';if(m==='custom-chat'){endpoint=completionUrl(saveField('customApiUrl'));model=saveField('customModelName');key=saveField('customApiKey');if(!model)throw Error('请输入自定义模型名称')}else{model=m;key=saveField('apiKey');endpoint=completionUrl(getBase(m));if(!key)throw Error('请先输入自己的文本模型 API Key')}
 const current={role:'user',content:hasImage?[{type:'text',text:prompt||'请分析图片'},{type:'image_url',image_url:{url:await optimizeImage(src)}}]:prompt};const messages=[...chatContext.slice(-40).map(({role,content})=>({role,content})),current];const headers={'Content-Type':'application/json'};if(key)headers.Authorization='Bearer '+key;const requestStart=performance.now();const d=await apiJson(endpoint,{method:'POST',headers,body:JSON.stringify({model,messages,stream:false,max_tokens:4096})});const requestSeconds=Math.max((performance.now()-requestStart)/1000,0.001);const content=d.choices?.[0]?.message?.content;const answer=typeof content==='string'?content:Array.isArray(content)?content.map(v=>v.text||'').join('\n'):'';if(!answer)throw Error('模型未返回有效文本：'+JSON.stringify(d).slice(0,250));const outputStats=getOutputTokenCount(d.usage,answer),tkps=outputStats.count/requestSeconds;recordChat(prompt,answer,model);txt.value=answer;updateStats();log('⏱️ API: '+requestSeconds.toFixed(2)+'s | OUTPUT TOKENS: '+outputStats.count+(outputStats.estimated?' (估算)':'')+' | TK/s: '+(outputStats.estimated?'~':'')+tkps.toFixed(2)+' (请求平均) | TOTAL TOKENS: '+(d.usage?.total_tokens??'?')+' | MEMORY: '+chatContext.length+'\n\n'+answer,'✅ UPLINK SECURED')}catch(e){log('SYS_ERR: '+e.message,'❌ LINK FAILED',false)}finally{btn.disabled=false;onModelChange()}}
 bind('btnCombinedAction',runAi);
 
-/* Doubao real-time ASR: browser mic capture + native Android WebSocket bridge or Node proxy. */
-let asrSocket=null,asrNativeMode=false,asrMediaStream=null,asrAudioContext=null,asrSource=null,asrProcessor=null,asrMute=null;
-let asrPending=new Float32Array(0),asrCurrentText='',asrFinalText='',asrStopping=false,asrCompleted=false;
-function asrStatus(message){$('asrStatus').textContent=message}
-function resampleTo16k(input,sourceRate){
- const ratio=sourceRate/16000;
- if(Math.abs(ratio-1)<0.001)return input;
- const length=Math.max(1,Math.floor(input.length/ratio)),out=new Float32Array(length);
- for(let i=0;i<length;i++){const pos=i*ratio,left=Math.floor(pos),right=Math.min(input.length-1,left+1),fraction=pos-left;out[i]=input[left]*(1-fraction)+input[right]*fraction}
- return out
-}
-function bytesToBase64(buffer){
- const bytes=new Uint8Array(buffer);let binary='';
- for(let i=0;i<bytes.length;i+=0x8000)binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+0x8000,bytes.length)));
- return btoa(binary)
-}
-function sendPcm16(samples){
- if(!samples.length)return;
- const pcm=new Int16Array(samples.length);
- for(let i=0;i<samples.length;i++){const value=Math.max(-1,Math.min(1,samples[i]));pcm[i]=value<0?value*32768:value*32767}
- if(asrNativeMode&&window.AndroidPuck){AndroidPuck.sendAudio(bytesToBase64(pcm.buffer));return}
- if(asrSocket&&asrSocket.readyState===WebSocket.OPEN)asrSocket.send(pcm.buffer)
-}
-function stopMicCapture(){
- if(asrProcessor){asrProcessor.onaudioprocess=null;try{asrProcessor.disconnect()}catch{}asrProcessor=null}
- if(asrSource){try{asrSource.disconnect()}catch{}asrSource=null}
- if(asrMute){try{asrMute.disconnect()}catch{}asrMute=null}
- if(asrMediaStream){asrMediaStream.getTracks().forEach(track=>track.stop());asrMediaStream=null}
- if(asrAudioContext){const context=asrAudioContext;asrAudioContext=null;try{context.close()}catch{}}
- if(asrPending.length&&(asrNativeMode||(asrSocket&&asrSocket.readyState===WebSocket.OPEN)))sendPcm16(asrPending);
- asrPending=new Float32Array(0)
-}
-async function beginMicCapture(){
- const AudioContextClass=window.AudioContext||window.webkitAudioContext;
- if(!AudioContextClass)throw Error('当前浏览器不支持 Web Audio API');
- asrAudioContext=new AudioContextClass();
- await asrAudioContext.resume();
- asrSource=asrAudioContext.createMediaStreamSource(asrMediaStream);
- asrProcessor=asrAudioContext.createScriptProcessor(4096,1,1);
- asrMute=asrAudioContext.createGain();asrMute.gain.value=0;
- asrProcessor.onaudioprocess=event=>{
-  if(asrStopping||(!asrNativeMode&&(!asrSocket||asrSocket.readyState!==WebSocket.OPEN)))return;
-  const samples=resampleTo16k(event.inputBuffer.getChannelData(0),asrAudioContext.sampleRate);
-  const joined=new Float32Array(asrPending.length+samples.length);joined.set(asrPending);joined.set(samples,asrPending.length);let offset=0;
-  while(joined.length-offset>=3200){sendPcm16(joined.subarray(offset,offset+3200));offset+=3200}
-  asrPending=joined.slice(offset)
- };
- asrSource.connect(asrProcessor);asrProcessor.connect(asrMute);asrMute.connect(asrAudioContext.destination);
- $('btnMic').textContent='⏹ 停止录音';$('btnMic').classList.add('is-recording');
- asrStatus('正在实时识别，说话内容会显示在这里…')
-}
-function finishAsr(text){
- if(asrCompleted)return;asrCompleted=true;stopMicCapture();
- const finalText=String(text||asrFinalText||asrCurrentText||'').trim();
- if(finalText){txt.value=finalText;updateStats();asrStatus('识别完成，已替换文本框内容（'+finalText.length+' 个字符）')}
- else asrStatus('录音结束，没有识别到有效文字');
- $('asrLiveText').textContent='';$('btnMic').textContent='🎙 麦克风实时录音';$('btnMic').classList.remove('is-recording');
- if(asrNativeMode&&window.AndroidPuck){AndroidPuck.closeAsr();asrNativeMode=false}
- const socket=asrSocket;asrSocket=null;if(socket&&socket.readyState<WebSocket.CLOSING)socket.close();
- asrCurrentText='';asrFinalText='';asrStopping=false
-}
-function failAsr(message){
- stopMicCapture();$('btnMic').textContent='🎙 麦克风实时录音';$('btnMic').classList.remove('is-recording');$('asrLiveText').textContent='';
- asrStatus('识别失败：'+message);
- if(asrNativeMode&&window.AndroidPuck){AndroidPuck.closeAsr();asrNativeMode=false}
- const socket=asrSocket;asrSocket=null;if(socket&&socket.readyState<WebSocket.CLOSING)socket.close();
- asrCurrentText='';asrFinalText='';asrStopping=false;asrCompleted=true
-}
-function stopAsr(){
- if(!asrSocket&&!asrNativeMode)return;
- if(asrStopping)return;
- asrStopping=true;stopMicCapture();$('btnMic').textContent='⏳ 正在整理识别结果…';asrStatus('正在结束录音并等待最终识别结果…');
- if(asrNativeMode&&window.AndroidPuck)AndroidPuck.stopAsr();
- else if(asrSocket&&asrSocket.readyState===WebSocket.OPEN)asrSocket.send(JSON.stringify({type:'stop'}))
-}
-async function startAsr(){
- if(asrSocket||asrNativeMode){stopAsr();return}
- if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return alert('当前浏览器无法访问麦克风，请允许 APK 使用麦克风权限');
- asrStopping=false;asrCompleted=false;asrCurrentText='';asrFinalText='';asrPending=new Float32Array(0);
- $('btnMic').disabled=true;$('btnMic').textContent='⏳ 等待麦克风权限…';asrStatus('请允许使用麦克风');
- try{
-  asrMediaStream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
-  const apiKey=saveField('asrApiKey')||saveField('ttsApiKey'),resourceId=saveField('asrResourceId')||'volc.seedasr.sauc.duration';
-  if(!window.AndroidPuck)throw Error('APK 原生语音模块未加载，请更新应用');
-  asrNativeMode=true;
-  AndroidPuck.startAsr(apiKey,resourceId);
- }catch(error){failAsr(error.message||'无法启动录音')}
- finally{$('btnMic').disabled=false}
-}
-function handleAsrMessage(message){
- if(message.type==='ready'){if(asrStopping){stopAsr();return}beginMicCapture().catch(error=>failAsr(error.message))}
- else if(message.type==='result'){asrCurrentText=message.text||asrCurrentText;if(message.final)asrFinalText=message.text||asrCurrentText;$('asrLiveText').textContent=asrCurrentText;asrStatus(message.final?'已收到最终分句，继续说话或点击停止':'豆包正在识别…')}
- else if(message.type==='done')finishAsr(message.text||asrFinalText||asrCurrentText);
- else if(message.type==='error')failAsr(message.message||'服务端返回错误')
-}
-window.onNativeAsrMessage=function(message){try{if(typeof message==='string')message=JSON.parse(message);handleAsrMessage(message)}catch(error){failAsr(error.message||'原生语音消息解析失败')}};
-bind('btnMic',startAsr);
-window.addEventListener('beforeunload',()=>{stopMicCapture();if(asrNativeMode&&window.AndroidPuck)AndroidPuck.closeAsr();if(asrSocket)try{asrSocket.close()}catch{}});
 async function runHf(prompt,src){
  if(!prompt)throw Error('HF 需要填写提示词');
  const token=saveField('hfApiKey'),mod=await import('https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js');
@@ -506,42 +400,44 @@ async function runHf(prompt,src){
 // 文本工具
 bind('btnExtractPoints',async()=>{const content=txt.value.trim();if(!content)return alert('请输入要提炼的文字');const key=saveField('apiKey');if(!key)return alert('请先输入自己的文本 API Key');const btn=$('btnExtractPoints');btn.disabled=true;log('正在提炼…','WORKING');try{const d=await apiJson(completionUrl(getBase('deepseek-v4-flash')),{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model:'deepseek-v4-flash',messages:[{role:'system',content:'提炼用户文本的核心要点，结构清晰、准确简明。'},{role:'user',content}],stream:false})});const answer=d.choices?.[0]?.message?.content;if(!answer)throw Error('模型未返回内容');txt.value=answer;updateStats();log('要点提炼成功')}catch(e){log(e.message,'ERROR',false)}finally{btn.disabled=false}});
 bind('btnExtractLinks',()=>{let content=txt.value;if(!content.trim())return alert('请先输入文字');let set=new Set();for(const m of content.matchAll(/(?:href|src)\s*=\s*["']([^"']+)["']/gi))if(!/^(data:|javascript:|#)/i.test(m[1]))set.add(m[1]);for(const m of content.matchAll(/https?:\/\/[^\s"'<>]+/gi))set.add(m[0]);if(!set.size)set=new Set(content.split('\n').map(s=>s.trim()).filter(Boolean));txt.value=[...set].join('\n');updateStats();log('提链去重完成：'+set.size+' 条')});
-bind('optimize-btn',()=>{txt.value=txt.value.replace(/[\*_]{1,3}([^\*_]+)[\*_]{1,3}/g,'$1').replace(/^([#\-*>+]+)\s+/gm,'').replace(/`/g,'').split('\n').map(x=>x.trim()).join('\n').replace(/\n{3,}/g,'\n\n');updateStats()});
+bind('optimize-btn',()=>{const cleaned=txt.value.replace(/^\s*[-*_]{3,}\s*$/gm,'').replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/g,'$1').replace(/^([#>*+\-]+)\s+/gm,'').replace(/\x60/g,'').replace(/[^\p{L}\p{N}\s，。！？；：、…—–·「」『』（）【】《》〈〉〔〕,.!?;:'"“”‘’()\[\]{}\-]/gu,'').split('\n').map(x=>x.trim().replace(/[ \t]{2,}/g,' ')).join('\n').replace(/\n{3,}/g,'\n\n').trim();txt.value=cleaned;updateStats();log('自然排版完成：已清理 Emoji、Markdown 和装饰符号，仅保留文字、数字及常用标点','FORMAT')});
 
-let ttsAudio=null,ttsObjectUrl='',ttsAbort=null,ttsBusy=false,nativeTtsPending=false,nativeTtsText='';
-function resetTts(){if(ttsAudio){ttsAudio.pause();ttsAudio.src='';ttsAudio=null}if(ttsObjectUrl){URL.revokeObjectURL(ttsObjectUrl);ttsObjectUrl=''}$('btnTts').textContent='语音朗读';ttsBusy=false;nativeTtsPending=false}
-function browserTtsFallback(text,reason){
- if(!('speechSynthesis'in window)){resetTts();log('豆包 TTS 不可用：'+reason,'TTS ERROR',false);return}
- resetTts();const utterance=new SpeechSynthesisUtterance(text);utterance.lang='zh-CN';utterance.onend=utterance.onerror=()=>resetTts();$('btnTts').textContent='⏹ 停止朗读';speechSynthesis.speak(utterance);
- log('豆包 TTS 暂不可用，已切换浏览器朗读：'+reason,'BROWSER TTS')
-}
-window.onNativeTtsResult=function(message){
+let ttsAudio=null,ttsObjectUrl='',ttsBusy=false,nativeTtsPending=false,nativeTtsText='';
+function resetTts(){if(ttsAudio){ttsAudio.pause();ttsAudio.src='';ttsAudio=null}if(ttsObjectUrl){URL.revokeObjectURL(ttsObjectUrl);ttsObjectUrl=''}$('btnTts').textContent='语音朗读';$('btnTts').disabled=false;ttsBusy=false;nativeTtsPending=false}
+function handleNativeTtsResult(message,engineName){
  try{
   if(typeof message==='string')message=JSON.parse(message);
   if(!nativeTtsPending)return;
   nativeTtsPending=false;
-  if(message.type==='error')return browserTtsFallback(nativeTtsText,message.message||'原生 TTS 请求失败');
-  const binary=atob(message.audioBase64||'');if(!binary.length)throw Error('豆包没有返回音频');
+  if(message.type==='error'){resetTts();log(engineName+' 朗读失败：'+(message.message||'语音服务返回错误'),'TTS ERROR',false);return}
+  const binary=atob(message.audioBase64||'');if(!binary.length)throw Error('语音服务没有返回音频');
   const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
-  const blob=new Blob([bytes],{type:'audio/mpeg'});if(!blob.size)throw Error('音频数据为空');
+  const blob=new Blob([bytes],{type:message.contentType||'audio/mpeg'});if(!blob.size)throw Error('音频数据为空');
   ttsObjectUrl=URL.createObjectURL(blob);ttsAudio=new Audio(ttsObjectUrl);
-  ttsAudio.onended=()=>resetTts();ttsAudio.onerror=()=>browserTtsFallback(nativeTtsText,'音频播放失败');
-  ttsAudio.play().then(()=>{$('btnTts').disabled=false;$('btnTts').textContent='⏹ 停止朗读';ttsBusy=true}).catch(error=>browserTtsFallback(nativeTtsText,error.message||'播放失败'));
- }catch(error){browserTtsFallback(nativeTtsText,error.message||'音频处理失败')}
-};
+  ttsAudio.onended=()=>resetTts();
+  ttsAudio.onerror=()=>{resetTts();log(engineName+' 音频播放失败','TTS ERROR',false)};
+  ttsAudio.play().then(()=>{$('btnTts').disabled=false;$('btnTts').textContent='⏹ 停止朗读';ttsBusy=true}).catch(error=>{resetTts();log(engineName+' 播放失败：'+(error.message||'未知错误'),'TTS ERROR',false)});
+ }catch(error){resetTts();log(engineName+' 处理失败：'+(error.message||'未知错误'),'TTS ERROR',false)}
+}
+window.onNativeTtsResult=message=>handleNativeTtsResult(message,'豆包 TTS');
+window.onNativeLocalTtsResult=message=>handleNativeTtsResult(message,'本地 TTS');
 bind('btnTts',async()=>{
- if(ttsBusy){if(ttsAbort)ttsAbort.abort();if(window.AndroidPuck)AndroidPuck.cancelTts();resetTts();if('speechSynthesis'in window)speechSynthesis.cancel();return}
- if(ttsAudio&&!ttsAudio.paused){resetTts();return}
- if('speechSynthesis'in window&&speechSynthesis.speaking){speechSynthesis.cancel();resetTts();return}
+ if(ttsBusy||nativeTtsPending){if(window.AndroidPuck){AndroidPuck.cancelTts();AndroidPuck.cancelLocalTts()}resetTts();return}
  const text=txt.value.trim();if(!text)return alert('请输入文字');
- const apiKey=saveField('ttsApiKey')||saveField('asrApiKey'),resourceId=saveField('ttsResourceId')||'seed-tts-2.0',speaker=saveField('ttsSpeaker')||'zh_female_vv_uranus_bigtts';
- if(window.AndroidPuck){
-  nativeTtsText=text;nativeTtsPending=true;ttsBusy=true;$('btnTts').disabled=false;$('btnTts').textContent='⏳ 豆包合成中…';
-  AndroidPuck.synthesize(text,apiKey,resourceId,speaker);return
+ if(!window.AndroidPuck){log('Android 语音模块未加载，请重新打开 K90-Tools','TTS ERROR',false);return}
+ const engine=saveField('ttsProvider')||'doubao';
+ nativeTtsText=text;nativeTtsPending=true;ttsBusy=true;
+ if(engine==='local'){
+  const endpoint=saveField('localTtsUrl')||'http://127.0.0.1:8080/api/tts';
+  const voice=saveField('localTtsVoice');
+  $('btnTts').textContent='⏳ 本地合成中…';
+  AndroidPuck.synthesizeLocal(text,endpoint,voice);return
  }
- browserTtsFallback(text,'当前 APK 未加载原生 TTS 模块');
+ const apiKey=saveField('ttsApiKey'),resourceId=saveField('ttsResourceId')||'seed-tts-2.0',speaker=saveField('ttsSpeaker')||'zh_female_vv_uranus_bigtts';
+ if(!apiKey){nativeTtsPending=false;ttsBusy=false;$('btnTts').textContent='语音朗读';return alert('请先在语音朗读设置中填写豆包 TTS API Key')}
+ $('btnTts').textContent='⏳ 豆包合成中…';
+ AndroidPuck.synthesize(text,apiKey,resourceId,speaker);
 });
-
 bind('btnMdPreview',()=>{if(!txt.value.trim())return alert('请先输入 Markdown');if(!window.marked||!window.DOMPurify)return alert('CDN 组件加载失败');const win=window.open('about:blank','_blank');if(!win)return alert('浏览器拦截了新窗口');const html=DOMPurify.sanitize(marked.parse(txt.value,{gfm:true,breaks:true}),{USE_PROFILES:{html:true}});win.document.open();win.document.write('<!DOCTYPE html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Markdown 预览</title><style>body{max-width:900px;margin:36px auto;padding:0 22px;background:#0c0e12;color:#e4e8ed;font:16px/1.8 system-ui;overflow-wrap:anywhere}h1,h2,h3{color:#75f3ae}a{color:#63c8ff}pre{overflow:auto;padding:16px;background:#151b23}img{max-width:100%}table{border-collapse:collapse}td,th{border:1px solid #555;padding:8px}</style>'+html);win.document.close()});
 bind('btnHtmlPreview',()=>{if(!txt.value.trim())return alert('请先输入 HTML');const url=URL.createObjectURL(new Blob([txt.value],{type:'text/html;charset=utf-8'}));window.open(url,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(url),60000)});
 bind('btnHideResp',()=>$('responseWrap').style.display='none');
@@ -604,17 +500,6 @@ bind('btnDecodeQR',async()=>{
  }catch(e){log(e.message,'QR ERROR',false)}
  finally{btn.disabled=false}
 });
-// Imgur 的匿名上传必须由终端用户提供 Client ID，且依赖 Imgur 的 CORS 策略。
-async function shareJpeg(blob,maxBytes=18*1048576){if(['image/jpeg','image/png'].includes(blob.type)&&blob.size<=maxBytes)return blob;const obj=URL.createObjectURL(blob);try{const im=new Image();im.src=obj;await im.decode();for(const side of [4096,3072,2560,2048,1600,1280,960]){const ratio=Math.min(1,side/Math.max(im.naturalWidth,im.naturalHeight));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.naturalWidth*ratio));c.height=Math.max(1,Math.round(im.naturalHeight*ratio));const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(im,0,0,c.width,c.height);for(const q of [.92,.85,.77,.67,.55]){const b=await new Promise(resolve=>c.toBlob(resolve,'image/jpeg',q));if(b&&b.size<=maxBytes)return b}}throw Error('图像压缩后仍过大')}finally{URL.revokeObjectURL(obj)}}
-bind('btnShareImage',async()=>{const client=$('imgurClientId');client.style.display='block';const id=saveField('imgurClientId');if(!id){client.focus();return alert('先在页面底部填写自己的 IMGUR CLIENT ID，然后再次点击图像分享')}const src=modifiedImgSrc||originalImgSrc;if(!src)return alert('请先选择、抽帧或生成图片');const btn=$('btnShareImage');btn.disabled=true;log('正在准备图片','UPLOADING');try{const blob=await shareJpeg(await imageBlob(src)),form=new FormData();form.append('image',blob,'shared-image.'+(blob.type==='image/png'?'png':'jpg'));form.append('type','file');const d=await apiJson('https://api.imgur.com/3/image',{method:'POST',headers:{Authorization:'Client-ID '+id,Accept:'application/json'},body:form});const url=d.data?.link;if(!url)throw Error('Imgur 未返回链接');txt.value=url;updateStats();log('IMGUR_UPLOAD_OK\n'+url+'\n大小：'+(blob.size/1048576).toFixed(2)+' MB','✅ 图像分享成功')}catch(e){log('Imgur 浏览器直传失败：'+e.message,'❌ SHARE ERROR',false)}finally{btn.disabled=false}});
-// 搜索：固定只使用哔哩哔哩
-const BILIBILI_SEARCH_URL='https://search.bilibili.com/all?keyword=';
-$('searchEngineValue').value=BILIBILI_SEARCH_URL;
-$('currentEngineText').textContent='哔哩哔哩';
-$('searchInput').placeholder='搜索哔哩哔哩...';
-function doSearch(){const q=$('searchInput').value.trim();if(!q)return;window.open(BILIBILI_SEARCH_URL+encodeURIComponent(q),'_blank','noopener,noreferrer')};bind('externalSearchBtn',doSearch);bind('searchClear',()=>{$('searchInput').value='';$('searchInput').focus()});$('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();if(e.key==='Escape')$('searchClear').click()});
-// 用 favicon 加载耗时做浏览器连通性探测，并非 ICMP ping。
-let currentUrl='https://www.baidu.com',pingData=[];bind('pingToggle',()=>$('pingModal').classList.add('show'));$('pingModal').addEventListener('click',e=>{if(e.target===$('pingModal'))$('pingModal').classList.remove('show')});document.querySelectorAll('#pingSheet .item').forEach(el=>el.addEventListener('click',()=>{if(el.dataset.url){currentUrl=el.dataset.url;$('siteName').textContent=el.dataset.name;$('descSite').textContent=el.dataset.name;pingData=[];doPing()}$('pingModal').classList.remove('show')}));function drawChart(){const canvas=$('chart'),rect=canvas.getBoundingClientRect(),w=Math.max(1,rect.width),h=Math.max(1,rect.height),dpr=Math.min(2,devicePixelRatio||1);canvas.width=w*dpr;canvas.height=h*dpr;const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);ctx.strokeStyle='#333';ctx.fillStyle='#666';ctx.font='10px monospace';const left=30,bottom=h-20,max=Math.max(60,...pingData.map(v=>v.ms));for(let i=0;i<=4;i++){const y=bottom-i*(bottom-10)/4;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w,y);ctx.stroke();ctx.fillText(Math.round(max*i/4),2,y)}if(pingData.length<2)return;const points=pingData.map((v,i)=>[left+i*(w-left-10)/(pingData.length-1),bottom-v.ms/max*(bottom-10)]);ctx.strokeStyle='#00ff41';ctx.lineWidth=2;ctx.beginPath();points.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.stroke()}function addPing(ms){pingData.push({ms,time:Date.now()});if(pingData.length>20)pingData.shift();drawChart()}function doPing(){const image=new Image(),start=performance.now();let done=false;const timer=setTimeout(()=>finish(false),2000);function finish(ok){if(done)return;done=true;clearTimeout(timer);const ms=Math.round(performance.now()-start);$('pingText').textContent=ok?ms+' ms':'UPLINK_DOWN';$('pingText').style.color=ok?'#00ff41':'#ff2a2a';addPing(ok?ms:500)}image.onload=()=>finish(true);image.onerror=()=>finish(false);image.src=currentUrl+'/favicon.ico?t='+Date.now()}setTimeout(doPing,1000);setInterval(()=>{if(document.visibilityState==='visible')doPing()},2000);$('performance-result').textContent='SYS_BOOT: '+Math.round(performance.now())+'ms';
 // 浏览器音频剪辑与转码工作台
 const audioLab={buffer:null,history:[],name:'',playerUrl:'',context:null,busy:false};
 function audioContext(){return audioLab.context||(audioLab.context=new (window.AudioContext||window.webkitAudioContext)())}

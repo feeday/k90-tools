@@ -6,7 +6,6 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -15,7 +14,8 @@
     <application
         android:name=".K90Application"
         android:allowBackup="false"
-        android:label="K90 Tools"
+        android:usesCleartextTraffic="true"
+        android:label="K90-Tools"
         android:theme="@style/AppTheme">
 
         <activity

@@ -64,7 +64,7 @@ public class MainActivity extends Activity {
         scroll.addView(root, new ScrollView.LayoutParams(-1, -2));
 
         TextView title = new TextView(this);
-        title.setText("K90 Tools 5.8");
+        title.setText("K90-Tools");
         title.setTextSize(24);
         title.setTextColor(Color.rgb(20, 20, 20));
         title.setPadding(0, dp(8), 0, dp(8));

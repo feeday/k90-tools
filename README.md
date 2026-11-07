@@ -1,4 +1,4 @@
-# K90 Tools（实验整合版）
+# K90-Tools（实验整合版）
 
 面向 **Redmi K90 / HyperOS / Android 16** 的性能监控与 AI 工具整合 APK。
 
@@ -55,13 +55,13 @@ Puck Chat 页面已经作为本地资源打包进 APK：
 
 - 主界面可点击“打开 Puck Chat AI 工具箱”。
 - 悬浮窗“全部模式”底部增加“AI 工具箱”入口。
-- 页面从 APK 的 assets 加载，不访问 `https://puck.chat/`，也不需要部署 Node.js 网站。
+- 页面从 APK 的 assets 加载，不访问 `https://puck.chat/`，也不需要部署 Node.js 网站。外部网站跳转按钮已移除，WebView 也会拦截外部页面导航。
 - 对话记忆、模型 Key 和语音设置继续保存在 WebView 本地存储中。
 - 支持文本模型、图像模型、文本处理、二维码、图片元数据、视频抽帧、音频剪辑等原页面工具。
-- 豆包实时语音识别和语音合成改为 APK 内的 OkHttp WebSocket 实现，不再调用原 Node.js `/api/asr/ws` 和 `/api/tts` 中转接口。
-- 首次使用语音输入时，需要授予 Android 麦克风权限。
+- 语音只保留豆包 TTS 朗读，并支持本地 TTS：`http://127.0.0.1:8080/api/tts` 和 `http://192.168.31.11:8080/api/tts`。
+- 不提供麦克风实时语音输入，也不申请麦克风权限。
 
-**网络说明：** 不需要购买或配置 puck.chat 域名，也不需要在手机上运行 Node.js。但在线模型、豆包语音、Hugging Face 和页面使用的第三方 JS 库仍然需要互联网连接及相应服务的 API Key；这不是完全离线模型包。
+**网络说明：** 不需要购买或配置 puck.chat 域名，也不需要在手机上运行 Node.js。但在线模型、豆包 TTS 和页面使用的第三方 JS 库仍然需要互联网连接及相应服务的 API Key；本地 TTS 需要手机能访问所选本地服务。
 
 ---
 

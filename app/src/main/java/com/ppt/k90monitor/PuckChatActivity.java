@@ -1,19 +1,15 @@
 package com.ppt.k90monitor;
 
-import android.Manifest;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -34,7 +30,6 @@ import java.util.List;
 /** Locally bundled Puck Chat page. It does not load the puck.chat website. */
 public class PuckChatActivity extends Activity {
     private static final String ASSET_URL = "https://appassets.androidplatform.net/assets/puck/index.html";
-    private static final int REQUEST_MIC = 6101;
     private static final int REQUEST_FILE = 6102;
 
     private FrameLayout contentFrame;
@@ -42,7 +37,6 @@ public class PuckChatActivity extends Activity {
     private WebView popupWebView;
     private LinearLayout popupLayer;
     private ValueCallback<Uri[]> fileChooserCallback;
-    private PermissionRequest pendingPermissionRequest;
     private WebViewAssetLoader assetLoader;
     private PuckSpeechBridge speechBridge;
 
@@ -71,7 +65,7 @@ public class PuckChatActivity extends Activity {
         toolbar.addView(back, new LinearLayout.LayoutParams(dp(64), dp(42)));
 
         TextView title = new TextView(this);
-        title.setText("PUCK CHAT · AI 工具箱");
+        title.setText("K90-Tools · AI 工具箱");
         title.setTextColor(Color.WHITE);
         title.setTextSize(14);
         title.setPadding(dp(12), 0, 0, 0);
@@ -133,14 +127,6 @@ public class PuckChatActivity extends Activity {
         });
 
         view.setWebChromeClient(new WebChromeClient() {
-            @Override public void onPermissionRequest(PermissionRequest request) {
-                runOnUiThread(() -> handleWebPermission(request));
-            }
-
-            @Override public void onPermissionRequestCanceled(PermissionRequest request) {
-                if (pendingPermissionRequest == request) pendingPermissionRequest = null;
-            }
-
             @Override public boolean onShowFileChooser(WebView webView,
                     ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (fileChooserCallback != null) fileChooserCallback.onReceiveValue(null);
@@ -171,22 +157,15 @@ public class PuckChatActivity extends Activity {
 
     private boolean routeNavigation(Uri uri) {
         if (uri == null) return true;
+        String scheme = uri.getScheme();
         String host = uri.getHost();
         if ("appassets.androidplatform.net".equalsIgnoreCase(host)
-                || "about".equalsIgnoreCase(uri.getScheme())
-                || "blob".equalsIgnoreCase(uri.getScheme())
-                || "data".equalsIgnoreCase(uri.getScheme())) {
+                || "about".equalsIgnoreCase(scheme)
+                || "blob".equalsIgnoreCase(scheme)
+                || "data".equalsIgnoreCase(scheme)) {
             return false;
         }
-        String scheme = uri.getScheme();
-        if ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)
-                || "mailto".equalsIgnoreCase(scheme)) {
-            try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); }
-            catch (ActivityNotFoundException e) {
-                Toast.makeText(this, "没有可打开此链接的应用", Toast.LENGTH_SHORT).show();
-            }
-            return true;
-        }
+        // All external HTTP(S), mail and custom-scheme navigation is intentionally blocked.
         return true;
     }
 
@@ -227,24 +206,6 @@ public class PuckChatActivity extends Activity {
         }
     }
 
-    private void handleWebPermission(PermissionRequest request) {
-        boolean wantsAudio = false;
-        for (String resource : request.getResources()) {
-            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) wantsAudio = true;
-        }
-        if (!wantsAudio) {
-            request.deny();
-            return;
-        }
-        if (Build.VERSION.SDK_INT < 23 || checkSelfPermission(Manifest.permission.RECORD_AUDIO)
-                == PackageManager.PERMISSION_GRANTED) {
-            request.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
-        } else {
-            pendingPermissionRequest = request;
-            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_MIC);
-        }
-    }
-
     private Button toolbarButton(String text) {
         Button button = new Button(this);
         button.setText(text);
@@ -252,20 +213,6 @@ public class PuckChatActivity extends Activity {
         button.setAllCaps(false);
         button.setPadding(dp(4), 0, dp(4), 0);
         return button;
-    }
-
-    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_MIC && pendingPermissionRequest != null) {
-            PermissionRequest request = pendingPermissionRequest;
-            pendingPermissionRequest = null;
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                request.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
-            } else {
-                request.deny();
-                Toast.makeText(this, "未授权麦克风，语音输入不可用", Toast.LENGTH_LONG).show();
-            }
-        }
     }
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -300,16 +247,12 @@ public class PuckChatActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
-        if (pendingPermissionRequest != null) {
-            try { pendingPermissionRequest.deny(); } catch (Throwable ignored) { }
-            pendingPermissionRequest = null;
-        }
         if (fileChooserCallback != null) {
             fileChooserCallback.onReceiveValue(null);
             fileChooserCallback = null;
         }
         closePopupWindow();
-        if (speechBridge != null) speechBridge.closeAsr();
+        if (speechBridge != null) { speechBridge.cancelTts(); speechBridge.cancelLocalTts(); }
         if (mainWebView != null) {
             try { mainWebView.stopLoading(); mainWebView.removeJavascriptInterface("AndroidPuck"); mainWebView.destroy(); }
             catch (Throwable ignored) { }

@@ -16,31 +16,36 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
 import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
 
 /**
- * Native Doubao ASR/TTS transport for the locally bundled Puck Chat page.
+ * Native Doubao and local TTS transport for the locally bundled K90-Tools page.
  * API keys are supplied by the page at request time and are never persisted here.
  */
 public final class PuckSpeechBridge {
-    private static final String ASR_URL = "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async";
     private static final String TTS_URL = "wss://openspeech.bytedance.com/api/v3/tts/unidirectional/stream";
     private static final int MAX_TTS_TEXT = 10_000;
+    private static final long MAX_LOCAL_TTS_BYTES = 24L * 1024L * 1024L;
+    private static final String LOCAL_TTS_LOOPBACK = "http://127.0.0.1:8080/api/tts";
+    private static final String LOCAL_TTS_LAN = "http://192.168.31.11:8080/api/tts";
 
     private final WebView webView;
     private final OkHttpClient client;
-    private volatile WebSocket asrSocket;
+    private final OkHttpClient localTtsClient;
+    private volatile Call localTtsCall;
     private volatile WebSocket ttsSocket;
-    private volatile boolean asrFinalSent;
-    private volatile boolean asrFinished;
     private volatile boolean ttsCancelled;
     private volatile boolean ttsFinished;
-    private volatile String lastAsrText = "";
     private final ByteArrayOutputStream ttsAudio = new ByteArrayOutputStream();
 
     public PuckSpeechBridge(WebView webView) {
@@ -51,142 +56,18 @@ public final class PuckSpeechBridge {
                 .writeTimeout(30, TimeUnit.SECONDS)
                 .pingInterval(20, TimeUnit.SECONDS)
                 .build();
-    }
-
-    @JavascriptInterface
-    public void startAsr(String apiKey, String resourceId) {
-        closeAsr();
-        String key = apiKey == null ? "" : apiKey.trim();
-        if (key.isEmpty()) {
-            asrEvent("error", "请先在豆包语音服务设置中填写 ASR API Key");
-            return;
-        }
-        String resource = resourceId == null || resourceId.trim().isEmpty()
-                ? "volc.seedasr.sauc.duration" : resourceId.trim();
-        asrFinalSent = false;
-        asrFinished = false;
-        lastAsrText = "";
-
-        Request request = new Request.Builder()
-                .url(ASR_URL)
-                .header("X-Api-Key", key)
-                .header("X-Api-Resource-Id", resource)
-                .header("X-Api-Request-Id", UUID.randomUUID().toString())
-                .header("X-Api-Sequence", "-1")
-                .header("X-Api-Connect-Id", UUID.randomUUID().toString())
+        this.localTtsClient = new OkHttpClient.Builder()
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(90, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .callTimeout(100, TimeUnit.SECONDS)
                 .build();
-
-        asrSocket = client.newWebSocket(request, new WebSocketListener() {
-            @Override public void onOpen(WebSocket socket, Response response) {
-                try {
-                    JSONObject user = new JSONObject().put("uid", "k90-puck-chat");
-                    JSONObject audio = new JSONObject()
-                            .put("format", "pcm")
-                            .put("codec", "raw")
-                            .put("rate", 16000)
-                            .put("bits", 16)
-                            .put("channel", 1);
-                    JSONObject options = new JSONObject()
-                            .put("model_name", "bigmodel")
-                            .put("enable_itn", true)
-                            .put("enable_punc", true)
-                            .put("enable_ddc", false)
-                            .put("enable_nonstream", true)
-                            .put("show_utterances", true)
-                            .put("result_type", "full")
-                            .put("end_window_size", 800)
-                            .put("force_to_speech_time", 1000);
-                    JSONObject payload = new JSONObject()
-                            .put("user", user)
-                            .put("audio", audio)
-                            .put("request", options);
-                    socket.send(ByteString.of(fullClientFrame(payload.toString())));
-                    asrEvent("ready", null);
-                } catch (Exception e) {
-                    failAsr("初始化豆包 ASR 失败：" + safeMessage(e));
-                }
-            }
-
-            @Override public void onMessage(WebSocket socket, ByteString bytes) {
-                try {
-                    JSONObject root = parseAsrFrame(bytes.toByteArray());
-                    int code = root.optInt("code", 0);
-                    if (code != 0) {
-                        failAsr("ASR 识别失败（" + code + "）：" + root.optString("message", "上游返回错误"));
-                        return;
-                    }
-                    JSONObject payload = root.optJSONObject("payload_msg");
-                    JSONObject result = payload == null ? root.optJSONObject("result") : payload.optJSONObject("result");
-                    if (result == null) result = new JSONObject();
-                    String text = result.optString("text", "");
-                    if (!text.isEmpty()) lastAsrText = text;
-
-                    if (!text.isEmpty() || (result.optJSONArray("utterances") != null
-                            && result.optJSONArray("utterances").length() > 0)) {
-                        JSONObject event = new JSONObject()
-                                .put("type", "result")
-                                .put("text", text.isEmpty() ? lastAsrText : text)
-                                .put("utterances", result.optJSONArray("utterances") == null
-                                        ? new org.json.JSONArray() : result.optJSONArray("utterances"))
-                                .put("final", root.optBoolean("is_last_package", false));
-                        JSONObject additions = result.optJSONObject("additions");
-                        if (additions != null) event.put("logId", additions.optString("log_id", ""));
-                        sendJs("onNativeAsrMessage", event);
-                    }
-                    if (root.optBoolean("is_last_package", false)) finishAsr(lastAsrText);
-                } catch (Exception e) {
-                    failAsr("解析 ASR 返回数据失败：" + safeMessage(e));
-                }
-            }
-
-            @Override public void onFailure(WebSocket socket, Throwable t, Response response) {
-                failAsr("连接豆包 ASR 失败：" + safeMessage(t));
-            }
-
-            @Override public void onClosed(WebSocket socket, int code, String reason) {
-                if (!asrFinished) {
-                    if (!lastAsrText.isEmpty()) finishAsr(lastAsrText);
-                    else failAsr("豆包 ASR 连接提前关闭：" + reason);
-                }
-            }
-        });
-    }
-
-    @JavascriptInterface
-    public void sendAudio(String base64Pcm) {
-        WebSocket socket = asrSocket;
-        if (socket == null || asrFinalSent || asrFinished || base64Pcm == null || base64Pcm.isEmpty()) return;
-        try {
-            byte[] pcm = Base64.decode(base64Pcm, Base64.NO_WRAP);
-            if (pcm.length == 0 || pcm.length > 128 * 1024) return;
-            socket.send(ByteString.of(asrAudioFrame(pcm, false)));
-        } catch (Exception ignored) {
-            failAsr("发送录音数据失败");
-        }
-    }
-
-    @JavascriptInterface
-    public void stopAsr() {
-        WebSocket socket = asrSocket;
-        if (socket == null || asrFinalSent || asrFinished) return;
-        asrFinalSent = true;
-        socket.send(ByteString.of(asrAudioFrame(new byte[0], true)));
-        webView.postDelayed(() -> {
-            if (!asrFinished) finishAsr(lastAsrText);
-        }, 12_000);
-    }
-
-    @JavascriptInterface
-    public void closeAsr() {
-        WebSocket socket = asrSocket;
-        asrSocket = null;
-        asrFinished = true;
-        if (socket != null) socket.close(1000, "ASR closed by page");
     }
 
     @JavascriptInterface
     public void synthesize(String text, String apiKey, String resourceId, String speaker) {
         cancelTts();
+        cancelLocalTts();
         String value = text == null ? "" : text.trim();
         String key = apiKey == null ? "" : apiKey.trim();
         if (value.isEmpty()) {
@@ -286,6 +167,87 @@ public final class PuckSpeechBridge {
     }
 
     @JavascriptInterface
+    public void synthesizeLocal(String text, String endpoint, String voice) {
+        cancelTts();
+        cancelLocalTts();
+        String value = text == null ? "" : text.trim();
+        if (value.isEmpty()) {
+            localTtsEvent("error", "请输入需要朗读的文字");
+            return;
+        }
+        if (value.length() > MAX_TTS_TEXT) {
+            localTtsEvent("error", "单次朗读最多支持 10000 个字符");
+            return;
+        }
+        String url = endpoint == null ? "" : endpoint.trim();
+        if (!LOCAL_TTS_LOOPBACK.equals(url) && !LOCAL_TTS_LAN.equals(url)) {
+            localTtsEvent("error", "本地 TTS 地址只允许 127.0.0.1 或 192.168.31.11 的 8080/api/tts 服务");
+            return;
+        }
+        try {
+            JSONObject payload = new JSONObject().put("text", value);
+            String speaker = voice == null ? "" : voice.trim();
+            if (!speaker.isEmpty()) payload.put("voice", speaker);
+            MediaType jsonType = MediaType.parse("application/json; charset=utf-8");
+            RequestBody body = RequestBody.create(jsonType, payload.toString());
+            Request request = new Request.Builder().url(url).post(body).build();
+            Call call = localTtsClient.newCall(request);
+            localTtsCall = call;
+            call.enqueue(new Callback() {
+                @Override public void onFailure(Call call, IOException error) {
+                    if (localTtsCall == call) localTtsCall = null;
+                    if (!call.isCanceled()) localTtsEvent("error", "本地 TTS 连接失败：" + safeMessage(error));
+                }
+
+                @Override public void onResponse(Call call, Response response) {
+                    try (Response closeable = response) {
+                        if (!closeable.isSuccessful()) {
+                            throw new IOException("本地 TTS HTTP " + closeable.code() + " " + closeable.message());
+                        }
+                        ResponseBody responseBody = closeable.body();
+                        if (responseBody == null) throw new IOException("本地 TTS 没有返回音频数据");
+                        MediaType type = responseBody.contentType();
+                        String contentType = type == null ? "audio/mpeg" : type.toString();
+                        long length = responseBody.contentLength();
+                        if (length > MAX_LOCAL_TTS_BYTES) throw new IOException("本地 TTS 音频超过 24 MB 限制");
+                        byte[] audio = responseBody.bytes();
+                        if (audio.length == 0) throw new IOException("本地 TTS 返回了空音频");
+                        if (audio.length > MAX_LOCAL_TTS_BYTES) throw new IOException("本地 TTS 音频超过 24 MB 限制");
+                        if (localTtsCall == call) localTtsCall = null;
+                        if (call.isCanceled()) return;
+                        JSONObject event = new JSONObject()
+                                .put("type", "done")
+                                .put("contentType", contentType)
+                                .put("audioBase64", Base64.encodeToString(audio, Base64.NO_WRAP));
+                        sendJs("onNativeLocalTtsResult", event);
+                    } catch (Exception error) {
+                        if (localTtsCall == call) localTtsCall = null;
+                        if (!call.isCanceled()) localTtsEvent("error", "本地 TTS 处理失败：" + safeMessage(error));
+                    }
+                }
+            });
+        } catch (Exception error) {
+            localTtsEvent("error", "本地 TTS 请求失败：" + safeMessage(error));
+        }
+    }
+
+    @JavascriptInterface
+    public void cancelLocalTts() {
+        Call call = localTtsCall;
+        localTtsCall = null;
+        if (call != null) call.cancel();
+    }
+
+    private void localTtsEvent(String type, String message) {
+        JSONObject event = new JSONObject();
+        try {
+            event.put("type", type);
+            if (message != null) event.put("message", message);
+        } catch (Exception ignored) { }
+        sendJs("onNativeLocalTtsResult", event);
+    }
+
+    @JavascriptInterface
     public void cancelTts() {
         ttsCancelled = true;
         ttsFinished = true;
@@ -323,38 +285,6 @@ public final class PuckSpeechBridge {
         ttsEvent("error", message);
     }
 
-    private void finishAsr(String text) {
-        if (asrFinished) return;
-        asrFinished = true;
-        JSONObject event = new JSONObject();
-        try {
-            event.put("type", "done");
-            event.put("text", text == null ? "" : text);
-        } catch (Exception ignored) { }
-        sendJs("onNativeAsrMessage", event);
-        WebSocket socket = asrSocket;
-        asrSocket = null;
-        if (socket != null) socket.close(1000, "ASR complete");
-    }
-
-    private void failAsr(String message) {
-        if (asrFinished) return;
-        asrFinished = true;
-        asrEvent("error", message);
-        WebSocket socket = asrSocket;
-        asrSocket = null;
-        if (socket != null) socket.close(1011, "ASR failed");
-    }
-
-    private void asrEvent(String type, String message) {
-        JSONObject event = new JSONObject();
-        try {
-            event.put("type", type);
-            if (message != null) event.put("message", message);
-        } catch (Exception ignored) { }
-        sendJs("onNativeAsrMessage", event);
-    }
-
     private void ttsEvent(String type, String message) {
         JSONObject event = new JSONObject();
         try {
@@ -376,46 +306,12 @@ public final class PuckSpeechBridge {
         return frame(new byte[]{0x11, 0x10, 0x10, 0x00}, json.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static byte[] asrAudioFrame(byte[] pcm, boolean last) {
-        return frame(new byte[]{0x11, (byte) (last ? 0x22 : 0x20), 0x00, 0x00}, pcm);
-    }
-
     private static byte[] frame(byte[] header, byte[] payload) {
         ByteBuffer buffer = ByteBuffer.allocate(header.length + 4 + payload.length).order(ByteOrder.BIG_ENDIAN);
         buffer.put(header);
         buffer.putInt(payload.length);
         buffer.put(payload);
         return buffer.array();
-    }
-
-    private static JSONObject parseAsrFrame(byte[] data) throws Exception {
-        if (data == null || data.length < 8) throw new IOException("ASR 返回了不完整的数据帧");
-        int headerSize = (data[0] & 0x0f) * 4;
-        int messageType = (data[1] >> 4) & 0x0f;
-        int flags = data[1] & 0x0f;
-        int compression = data[2] & 0x0f;
-        if (messageType == 0x0f) {
-            if (data.length < headerSize + 8) throw new IOException("ASR 返回错误帧");
-            int code = readInt(data, headerSize);
-            int size = readInt(data, headerSize + 4);
-            String message = safeUtf8(data, headerSize + 8, size);
-            throw new IOException("ASR 上游错误 " + code + ": " + message);
-        }
-        int[] offsets = (flags & 0x01) != 0 || (flags & 0x03) != 0
-                ? new int[]{headerSize + 4, (flags & 0x04) != 0 ? headerSize + 4 : headerSize}
-                : new int[]{(flags & 0x04) != 0 ? headerSize + 4 : headerSize};
-        Exception last = null;
-        for (int offset : offsets) {
-            if (data.length < offset + 4) continue;
-            int size = readInt(data, offset);
-            if (size < 0 || size > data.length - offset - 4) continue;
-            try {
-                byte[] payload = slice(data, offset + 4, size);
-                if (compression == 0x01) payload = gunzip(payload);
-                return new JSONObject(new String(payload, StandardCharsets.UTF_8));
-            } catch (Exception e) { last = e; }
-        }
-        throw new IOException(last == null ? "ASR payload 长度字段无效" : "无法解析 ASR 返回的 JSON", last);
     }
 
     private static final class TtsPacket {

@@ -1,4 +1,4 @@
-name: Build K90 Tools APK
+name: Build K90-Tools APK
 
 on:
   workflow_dispatch:
@@ -36,6 +36,20 @@ jobs:
           echo "Commit: $GITHUB_SHA"
           echo "Branch: $GITHUB_REF_NAME"
           grep -E 'versionCode|versionName' app/build.gradle.kts || true
+
+      - name: Validate bundled Puck Chat JavaScript
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path("app/src/main/assets/puck/index.html").read_text(encoding="utf-8")
+          match = re.search(r"<script>\s*(.*?)</script>", html, re.S)
+          if not match:
+              raise SystemExit("Inline Puck Chat script not found")
+          Path("/tmp/k90-tools-puck.js").write_text(match.group(1), encoding="utf-8")
+          PY
+          node --check /tmp/k90-tools-puck.js
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
