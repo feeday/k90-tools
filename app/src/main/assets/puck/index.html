@@ -631,7 +631,7 @@ bind('btnDecodeQR',async()=>{
    download.type='button';download.className='btn btn-ai';
    download.style.cssText='padding:10px 22px;width:min(100%,320px);';
    download.textContent='保存二维码 PNG';
-   download.addEventListener('click',()=>canvas.toBlob(blob=>{
+   download.addEventListener('click',()=>canvas.toBlob(async blob=>{
     if(blob){try{const path=await downloadBlob(blob,'qrcode_'+Date.now()+'.png');log('二维码 PNG 已保存：'+path,'SAVED')}catch(error){log('二维码保存失败：'+error.message,'QR ERROR',false)}}
     else log('无法导出二维码 PNG','QR ERROR',false);
    },'image/png'));
