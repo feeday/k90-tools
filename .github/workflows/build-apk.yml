@@ -84,8 +84,8 @@ jobs:
           if missing:
               raise SystemExit("Missing required integrations: " + ", ".join(missing))
 
-          ids = set(re.findall(r'\\bid=["\\']([^"\\']+)["\\']', html))
-          bound = set(re.findall(r'\\bbind\\(["\\']([^"\\']+)["\\']', html))
+          ids = set(re.findall(r'id="([^"]+)"', html))
+          bound = set(re.findall(r"bind\('([^']+)'", html))
           missing_bindings = sorted(bound - ids)
           if missing_bindings:
               raise SystemExit("Buttons without matching DOM elements: " + ", ".join(missing_bindings))
