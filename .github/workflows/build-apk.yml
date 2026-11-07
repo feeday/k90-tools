@@ -83,7 +83,7 @@ jobs:
               "native file export": "AndroidPuck.beginSaveFile",
               "native system speech fallback": "AndroidPuck.speakSystem",
               "awaited audio export": "await downloadBlob(blob",
-              "video-to-audio button": 'id="btnExtractAudio"',
+              "image description button": 'id="btnDescribeImage"',
               "retained source media": "audioLab.sourceFile=file",
           }
           missing = [name for name, marker in required.items() if marker not in html]

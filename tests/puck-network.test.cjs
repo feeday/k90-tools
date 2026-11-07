@@ -77,7 +77,7 @@ test('all speech engines receive filtered text',()=>{
  }
 });
 test('cloud failure is visible, resets send button and clears progress timer',async()=>{
- const fields={unifiedModel:{value:'deepseek-v4-flash'},btnCombinedAction:{disabled:false},responseWrap:{scrollIntoView(){}}};
+ const fields={btnDescribeImage:{disabled:false},unifiedModel:{value:'deepseek-v4-flash'},btnCombinedAction:{disabled:false},responseWrap:{scrollIntoView(){}}};
  let message,cleared=false;
  const c={window:{},addCallRecord(){},Date,performance:{now:()=>1},$:(id)=>fields[id],txt:{value:'hello'},modifiedImgSrc:'',originalImgSrc:'',overlayAutoSpeakNext:false,IMAGE_MODELS:[],setInterval:()=>123,clearInterval:id=>{cleared=id===123},log(){},alert:m=>message=m,saveField:()=> 'key',getBase:()=> 'https://api.poixe.com',completionUrl:x=>x+'/v1/chat/completions',chatContext:[],apiJson:async()=>{throw Error('HTTP 401: invalid key')},onModelChange(){}};
  vm.createContext(c);
@@ -100,4 +100,17 @@ test('usage logs preserve LLM and TTS together, distinguish estimates and missin
  assert.equal(c.costInfo({}),'未提供');
  for(let i=0;i<31;i++)c.addCallRecord({类型:'test',序号:i});
  assert.equal(box.textContent.split('\n\n').length,30);
+});
+test('image description sends current image without history and displays only reply',async()=>{
+ const fields={unifiedModel:{value:'custom-chat'},btnCombinedAction:{disabled:false},btnDescribeImage:{disabled:false},responseWrap:{scrollIntoView(){}}};
+ let request,display;
+ const c={window:{},Date,performance:{now:()=>100},$:(id)=>fields[id],txt:{value:'old answer'},modifiedImgSrc:'edited-image',originalImgSrc:'original-image',overlayAutoSpeakNext:false,IMAGE_MODELS:[],setInterval:()=>1,clearInterval(){},log:(value)=>display=value,alert:m=>{throw Error(m)},saveField:id=>({customApiUrl:'http://local',customModelName:'vision'}[id]||''),completionUrl:x=>x+'/v1/chat/completions',chatContext:[{role:'user',content:'irrelevant history'}],optimizeImage:async src=>{assert.equal(src,'edited-image');return 'data:image/jpeg;base64,TEST'},apiJson:async(url,opts)=>{request=JSON.parse(opts.body);return {choices:[{message:{content:'图中有一棵树。'}}]}},recordLlmUsage(){},recordChat(){},updateStats(){},onModelChange(){},addCallRecord(){}};
+ vm.createContext(c);vm.runInContext(html.slice(html.indexOf('async function runAi('),html.indexOf("bind('btnCombinedAction',runAi);")),c);
+ await c.runAi({describe:true});
+ assert.equal(request.model,'vision');assert.equal(request.messages.length,1);
+ assert.match(request.messages[0].content[0].text,/详细描述/);
+ assert.equal(request.messages[0].content[1].image_url.url,'data:image/jpeg;base64,TEST');
+ assert.equal(display,'图中有一棵树。');assert.equal(fields.btnDescribeImage.disabled,false);
+ request=null;c.modifiedImgSrc='';c.originalImgSrc='';c.alert=()=>{};
+ await c.runAi({describe:true});assert.equal(request,null);
 });
