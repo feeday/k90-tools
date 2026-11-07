@@ -207,8 +207,9 @@ public class OverlayMonitorService extends Service {
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 Build.VERSION.SDK_INT >= 26 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : 2002,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                 PixelFormat.TRANSLUCENT);
+        lp.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE;
         lp.gravity = Gravity.TOP | Gravity.START;
         lp.x = dp(10);
         lp.y = dp(90);
@@ -217,7 +218,7 @@ public class OverlayMonitorService extends Service {
         box.setOnLongClickListener(v -> { stopSelf(); return true; });
         overlay = box;
         windowManager.addView(overlay, lp);
-        updateFtpUi();
+        updateMetrics();
     }
 
     private void updateMetrics() {
@@ -269,6 +270,16 @@ public class OverlayMonitorService extends Service {
             setOverlayFocusable(false);
         }
         chatRow.setVisibility(visible ? View.VISIBLE : View.GONE);
+        if (lp != null && overlay != null) {
+            int width = visible ? Math.min(dp(320), getResources().getDisplayMetrics().widthPixels - dp(20))
+                    : WindowManager.LayoutParams.WRAP_CONTENT;
+            if (lp.width != width) {
+                lp.width = width;
+                lp.x = Math.max(0, Math.min(lp.x, getResources().getDisplayMetrics().widthPixels
+                        - (visible ? width : overlay.getWidth())));
+                windowManager.updateViewLayout(overlay, lp);
+            }
+        }
     }
 
     private void focusAiInput() {
@@ -276,7 +287,10 @@ public class OverlayMonitorService extends Service {
         if (aiInput != null) {
             aiInput.requestFocus();
             InputMethodManager input = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-            if (input != null) input.showSoftInput(aiInput, InputMethodManager.SHOW_IMPLICIT);
+            aiInput.postDelayed(() -> {
+                if (aiInput.hasFocus() && chatRow.getVisibility() == View.VISIBLE && input != null)
+                    input.showSoftInput(aiInput, InputMethodManager.SHOW_IMPLICIT);
+            }, 100);
         }
     }
 
@@ -360,6 +374,10 @@ public class OverlayMonitorService extends Service {
 
     private void updateFtpUi() {
         if (ftpToggle == null) return;
+        if (MODE_TEMP.equals(prefs.getString(KEY_MODE, MODE_FULL))) {
+            if (ftpInfo != null) ftpInfo.setVisibility(View.GONE);
+            return;
+        }
         if (FtpServerService.isRunning()) {
             ftpToggle.setText("FTP:开");
             ftpToggle.setTextColor(0xFF74E59A);

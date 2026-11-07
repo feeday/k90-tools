@@ -483,20 +483,53 @@ function onModelChange(){const m=$('unifiedModel').value,custom=m==='custom-chat
 try{const stored=localStorage.getItem('tcq_html_unifiedModel');if([...$('unifiedModel').options].some(o=>o.value===stored))$('unifiedModel').value=stored}catch{}
 $('unifiedModel').addEventListener('change',()=>{try{localStorage.setItem('tcq_html_unifiedModel',$('unifiedModel').value)}catch{}onModelChange()});onModelChange();
 function getBase(model){return IMAGE_MODELS.includes(model)?'https://api.apimart.ai':'https://api.poixe.com'}
-function completionUrl(base){base=base.replace(/\/+$/,'');if(base.endsWith('/chat/completions'))return base;return (base.endsWith('/v1')?base:base+'/v1')+'/chat/completions'}
-async function apiJson(url,opts){let r;try{r=await fetch(url,opts)}catch(e){throw Error('跨域访问或网络失败：'+e.message+'。纯 HTML 不能绕过 CORS；请换用支持浏览器调用的端点或部署独立中转。')}const raw=await r.text();let data;try{data=JSON.parse(raw)}catch{throw Error('API 返回非 JSON（HTTP '+r.status+'）：'+raw.slice(0,200))}if(!r.ok)throw Error('HTTP '+r.status+': '+(typeof data.error==='string'?data.error:data.error?.message||data.message||raw.slice(0,300)));return data}
+function completionUrl(base){
+ base=String(base||'').trim().replace(/\/+$/,'');
+ if(!/^https?:\/\//i.test(base))throw Error('请输入完整的 HTTP / HTTPS API 地址');
+ const url=new URL(base);
+ if(url.search||url.hash)throw Error('API 地址请勿包含查询参数或锚点');
+ if(base.endsWith('/chat/completions'))return base;
+ return (base.endsWith('/v1')?base:base+'/v1')+'/chat/completions';
+}
+const nativeHttpPending=new Map();
+let nativeHttpSequence=0;
+window.onNativeHttpResult=function(result){
+ const pending=nativeHttpPending.get(result.id);if(!pending)return;
+ nativeHttpPending.delete(result.id);clearTimeout(pending.timer);
+ if(result.error)pending.reject(Error(result.error));
+ else pending.resolve({status:result.status,ok:result.status>=200&&result.status<300,text:async()=>result.body});
+};
+function nativeHttp(url,opts={}){
+ return new Promise((resolve,reject)=>{
+  const id=Date.now()+'-'+(++nativeHttpSequence);
+  const timer=setTimeout(()=>{nativeHttpPending.delete(id);reject(Error('API 请求超时，请检查服务状态'))},280000);
+  nativeHttpPending.set(id,{resolve,reject,timer});
+  try{AndroidHttp.request(id,url,opts.method||'GET',JSON.stringify(opts.headers||{}),opts.body||'')}
+  catch(error){clearTimeout(timer);nativeHttpPending.delete(id);reject(error)}
+ });
+}
+async function apiJson(url,opts){
+ let r;
+ try{r=window.AndroidHttp&&typeof AndroidHttp.request==='function'?await nativeHttp(url,opts):await fetch(url,opts)}
+ catch(e){throw Error('API 网络请求失败：'+e.message)}
+ const raw=await r.text();let data;
+ try{data=JSON.parse(raw)}catch{throw Error('API 返回非 JSON（HTTP '+r.status+'）：'+raw.slice(0,200))}
+ if(!r.ok)throw Error('HTTP '+r.status+': '+(typeof data.error==='string'?data.error:data.error?.message||data.message||raw.slice(0,300)));
+ return data;
+}
 async function imageBlob(src){if(!src)throw Error('请先选择图片');let r=await fetch(src);if(!r.ok)throw Error('图像读取失败 HTTP '+r.status);return r.blob()}
 async function optimizeImage(src,max=1536){const blob=await imageBlob(src),obj=URL.createObjectURL(blob);try{const img=new Image();await new Promise((ok,bad)=>{img.onload=ok;img.onerror=bad;img.src=obj});const ratio=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*ratio));c.height=Math.max(1,Math.round(img.naturalHeight*ratio));c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.85)}finally{URL.revokeObjectURL(obj)}}
 function imageResult(data){const d=Array.isArray(data?.data)?data.data[0]:data?.data||data;const values=[d?.result?.images?.[0]?.url?.[0],d?.result?.images?.[0]?.url,d?.result?.image_urls?.[0],d?.result?.url,d?.result?.image_url,d?.images?.[0]?.url?.[0],d?.images?.[0]?.url,d?.url,d?.image_url,d?.data?.[0]?.url];return values.find(v=>typeof v==='string'&&/^(https?:\/\/|data:image\/)/i.test(v))||''}
 function setupImage(url,edited=false){if(edited){modifiedImgSrc=url;$('modifiedImage').src=url;$('modifiedImgWrapper').style.display='block'}else{originalImgSrc=url;modifiedImgSrc='';$('displayedImage').src=url;$('modifiedImgWrapper').style.display='none'}$('imageDisplayContainer').style.display='flex';$('editButtons').style.display='grid';onModelChange()}
 async function pollImage(base,key,id){for(let i=0;i<45;i++){await sleep(i?4000:5000);const d=await apiJson(base+'/v1/tasks/'+encodeURIComponent(id),{headers:{Authorization:'Bearer '+key}}),v=Array.isArray(d.data)?d.data[0]:d.data||d,s=String(v.status||d.status||'').toLowerCase(),url=imageResult(d);$('respStatus').textContent='RENDER: '+(s||'QUEUED')+' ['+(i+1)+'/45]';if(url&&(!s||['completed','success','succeeded','finished'].includes(s)))return url;if(['error','failed','cancelled','canceled'].includes(s))throw Error(JSON.stringify(v.error||d.error||s))}throw Error('任务超时，任务号：'+id)}
 function getOutputTokenCount(usage,answer){const values=[usage?.completion_tokens,usage?.output_tokens,usage?.completionTokens,usage?.generated_tokens];for(const value of values){if(value!==undefined&&value!==null&&Number.isFinite(Number(value))&&Number(value)>=0)return{count:Number(value),estimated:false}}const total=Number(usage?.total_tokens),input=Number(usage?.prompt_tokens);if(usage?.total_tokens!=null&&usage?.prompt_tokens!=null&&Number.isFinite(total)&&Number.isFinite(input)&&total>=input)return{count:total-input,estimated:false};const cjk=(answer.match(/[\u3400-\u9fff]/g)||[]).length,other=answer.replace(/[\u3400-\u9fff]/g,'').length;return{count:Math.max(1,Math.round(cjk+other/4)),estimated:true}}let overlayAutoSpeakNext=false;
-async function runAi(){const autoSpeak=overlayAutoSpeakNext;overlayAutoSpeakNext=false;const m=$('unifiedModel').value,prompt=txt.value.trim(),src=modifiedImgSrc||originalImgSrc,hasImage=!!src,btn=$('btnCombinedAction');if(!prompt&&!hasImage)return alert('请填写提示词或选择图片');btn.disabled=true;log('正在连接 API…','CONNECTING');const t=performance.now();try{if(m==='hf-qwen-image'){await runHf(prompt,src);return}if(IMAGE_MODELS.includes(m)){const key=saveField('imageApiKey');if(!key)throw Error('请先填写 apimart.ai API Key');const base=getBase(m);const body={model:m,prompt:prompt||'请基于提供的图片生成',n:1,size:$('imgSize').value};if(m==='gpt-image-2')body.resolution=$('imageResolution').value;if(hasImage)body.image_urls=[await optimizeImage(src)];const d=await apiJson(base+'/v1/images/generations',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(body)});let result=imageResult(d);if(!result){const record=Array.isArray(d.data)?d.data[0]:d.data||d;const id=record.task_id||record.id||d.task_id;if(!id)throw Error('没有返回图片链接或任务 ID');result=await pollImage(base,key,id)}setupImage(result,hasImage);log('图片生成完成 · '+((performance.now()-t)/1000).toFixed(2)+' 秒','RENDER COMPLETE');return}
+async function runAi(){if($('btnCombinedAction').disabled)return;const autoSpeak=overlayAutoSpeakNext;overlayAutoSpeakNext=false;const m=$('unifiedModel').value,prompt=txt.value.trim(),src=modifiedImgSrc||originalImgSrc,hasImage=!!src,btn=$('btnCombinedAction');if(!prompt&&!hasImage)return alert('请填写提示词或选择图片');btn.disabled=true;log('正在连接 API…','CONNECTING');const t=performance.now();try{if(m==='hf-qwen-image'){await runHf(prompt,src);return}if(IMAGE_MODELS.includes(m)){const key=saveField('imageApiKey');if(!key)throw Error('请先填写 apimart.ai API Key');const base=getBase(m);const body={model:m,prompt:prompt||'请基于提供的图片生成',n:1,size:$('imgSize').value};if(m==='gpt-image-2')body.resolution=$('imageResolution').value;if(hasImage)body.image_urls=[await optimizeImage(src)];const d=await apiJson(base+'/v1/images/generations',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(body)});let result=imageResult(d);if(!result){const record=Array.isArray(d.data)?d.data[0]:d.data||d;const id=record.task_id||record.id||d.task_id;if(!id)throw Error('没有返回图片链接或任务 ID');result=await pollImage(base,key,id)}setupImage(result,hasImage);log('图片生成完成 · '+((performance.now()-t)/1000).toFixed(2)+' 秒','RENDER COMPLETE');return}
 let endpoint,model,key='';if(m==='custom-chat'){endpoint=completionUrl(saveField('customApiUrl'));model=saveField('customModelName');key=saveField('customApiKey');if(!model)throw Error('请输入自定义模型名称')}else{model=m;key=saveField('apiKey');endpoint=completionUrl(getBase(m));if(!key)throw Error('请先输入自己的文本模型 API Key')}
 const current={role:'user',content:hasImage?[{type:'text',text:prompt||'请分析图片'},{type:'image_url',image_url:{url:await optimizeImage(src)}}]:prompt};const messages=[...chatContext.slice(-40).map(({role,content})=>({role,content})),current];const headers={'Content-Type':'application/json'};if(key)headers.Authorization='Bearer '+key;const requestStart=performance.now();const d=await apiJson(endpoint,{method:'POST',headers,body:JSON.stringify({model,messages,stream:false,max_tokens:4096})});const requestSeconds=Math.max((performance.now()-requestStart)/1000,0.001);const content=d.choices?.[0]?.message?.content;const answer=typeof content==='string'?content:Array.isArray(content)?content.map(v=>v.text||'').join('\n'):'';if(!answer)throw Error('模型未返回有效文本：'+JSON.stringify(d).slice(0,250));const outputStats=getOutputTokenCount(d.usage,answer),tkps=outputStats.count/requestSeconds;recordChat(prompt,answer,model);txt.value=answer;updateStats();log('⏱️ API: '+requestSeconds.toFixed(2)+'s | OUTPUT TOKENS: '+outputStats.count+(outputStats.estimated?' (估算)':'')+' | TK/s: '+(outputStats.estimated?'~':'')+tkps.toFixed(2)+' (请求平均) | TOTAL TOKENS: '+(d.usage?.total_tokens??'?')+' | MEMORY: '+chatContext.length+'\n\n'+answer,'✅ UPLINK SECURED');if(autoSpeak&&!speakText(answer,true)){ttsNotice='自动朗读未启动：请配置豆包 TTS Key 或本地 TTS';updateMemoryStatus()}}catch(e){log('SYS_ERR: '+e.message,'❌ LINK FAILED',false)}finally{btn.disabled=false;onModelChange()}}
 bind('btnCombinedAction',runAi);
 window.receiveOverlayPrompt=function(prompt){
- const value=String(prompt||'').trim();if(!value)return;
+ const value=String(prompt||'').trim();if(!value)return false;
+ if($('btnCombinedAction').disabled)return false;
  let model=$('unifiedModel').value;
  if(!TEXT_MODELS.includes(model)&&model!=='custom-chat'){
   $('unifiedModel').value='deepseek-v4-flash';
@@ -504,11 +537,11 @@ window.receiveOverlayPrompt=function(prompt){
   onModelChange();model='deepseek-v4-flash';
  }
  const ready=model==='custom-chat'
-  ?!!(saveField('customApiUrl')&&saveField('customModelName')&&saveField('customApiKey'))
+  ?!!(saveField('customApiUrl')&&saveField('customModelName'))
   :!!saveField('apiKey');
  txt.value=value;updateStats();
- if(!ready){log('悬浮窗发送未执行：请先配置文本模型 API 地址、模型名称和 API Key','API CONFIG',false);return}
- overlayAutoSpeakNext=true;runAi();
+ if(!ready){log('悬浮窗发送未执行：请先配置文本模型 API 地址、模型名称和 API Key','API CONFIG',false);return true}
+ overlayAutoSpeakNext=true;runAi();return true;
 };
 let currentUrl='https://www.baidu.com',pingData=[];
 bind('pingToggle',()=>$('pingModal').classList.add('show'));

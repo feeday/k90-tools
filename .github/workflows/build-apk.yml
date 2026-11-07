@@ -1,6 +1,8 @@
 name: Build K90-Tools APK
 
 on:
+  pull_request:
+    branches: [ "main" ]
   workflow_dispatch:
   push:
     branches: [ "main", "experiment" ]
@@ -63,6 +65,9 @@ jobs:
             echo "Checking $script"
             node --check "$script"
           done
+
+      - name: Test API transport and overlay prompt behavior
+        run: node --test tests/puck-network.test.cjs
 
       - name: Check required Puck Chat integrations
         shell: bash
