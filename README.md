@@ -923,3 +923,14 @@ GitHub Actions 当前主要生成 **debug 签名 APK**，适合个人设备侧�
 - `experiment`：新功能、UI 调整、兼容性和 Bug 修复的实验分支；验证通过后再合并到 `main`。
 - 原仓库 `feeday/K90PerformanceOverlay` 已恢复到本次实验开始前的 5.7 版本，不在原仓库继续做实验。
 - 新 APK applicationId：`com.ppt.k90tools`，不会覆盖原 K90 的 `com.ppt.k90monitor`。
+
+## K90-Tools 5.10 更新
+
+- 音频剪辑导出、视频抽帧 ZIP、视频音轨提取、二维码 PNG、对话 JSON 统一通过 Android 原生文件接口保存。
+- Android 10 及以上默认保存到手机 Download/K90-Tools/；较旧 Android 保存到应用专属 Downloads/K90-Tools 目录。保存后页面会显示实际路径。
+- AI 对话每轮自动更新 Download/K90-Tools/ai_chat_memory.json，同时保留 WebView 本地记忆；“导出记忆”另存带时间戳的 JSON 文件。
+- 性能悬浮窗新增输入框。发送后打开同一个 K90-Tools 工具箱实例，要求先配置文本模型 API 地址 / API Key；文本回复自动使用当前选定的豆包或本地 TTS 朗读。
+- 工具箱 Activity 使用 singleTask，悬浮窗和主界面重复点击不会创建多个工具箱页面。
+- 网络 Ping 独立放在工具页面最底部；节点切换只用于连通性检测，不会打开外部网页。
+- 页面只保留内置功能按钮；外部网站入口不再显示。
+

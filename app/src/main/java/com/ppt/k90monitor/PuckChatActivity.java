@@ -22,6 +22,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONObject;
+
 import androidx.webkit.WebViewAssetLoader;
 
 import java.util.ArrayList;
@@ -31,6 +33,7 @@ import java.util.List;
 public class PuckChatActivity extends Activity {
     private static final String ASSET_URL = "https://appassets.androidplatform.net/assets/puck/index.html";
     private static final int REQUEST_FILE = 6102;
+    public static final String EXTRA_PROMPT = "com.ppt.k90tools.EXTRA_PROMPT";
 
     private FrameLayout contentFrame;
     private WebView mainWebView;
@@ -39,10 +42,13 @@ public class PuckChatActivity extends Activity {
     private ValueCallback<Uri[]> fileChooserCallback;
     private WebViewAssetLoader assetLoader;
     private PuckSpeechBridge speechBridge;
+    private boolean pageLoaded;
+    private String pendingPrompt;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        pendingPrompt = getIntent() == null ? null : getIntent().getStringExtra(EXTRA_PROMPT);
         assetLoader = new WebViewAssetLoader.Builder()
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
                 .build();
@@ -117,6 +123,19 @@ public class PuckChatActivity extends Activity {
                 return assetLoader.shouldInterceptRequest(request.getUrl());
             }
 
+            @Override public void onPageStarted(WebView webView, String url, android.graphics.Bitmap favicon) {
+                super.onPageStarted(webView, url, favicon);
+                if (webView == mainWebView) pageLoaded = false;
+            }
+
+            @Override public void onPageFinished(WebView webView, String url) {
+                super.onPageFinished(webView, url);
+                if (webView == mainWebView) {
+                    pageLoaded = true;
+                    dispatchPendingPrompt();
+                }
+            }
+
             @Override public boolean shouldOverrideUrlLoading(WebView webView, WebResourceRequest request) {
                 return routeNavigation(request.getUrl());
             }
@@ -153,6 +172,28 @@ public class PuckChatActivity extends Activity {
             }
         });
         return view;
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String prompt = intent == null ? null : intent.getStringExtra(EXTRA_PROMPT);
+        if (prompt != null && !prompt.trim().isEmpty()) {
+            pendingPrompt = prompt.trim();
+            dispatchPendingPrompt();
+        }
+    }
+
+    private void dispatchPendingPrompt() {
+        if (!pageLoaded || mainWebView == null || pendingPrompt == null || pendingPrompt.trim().isEmpty()) return;
+        String prompt = pendingPrompt;
+        pendingPrompt = null;
+        String script = "if (typeof window.receiveOverlayPrompt === 'function') { window.receiveOverlayPrompt("
+                + JSONObject.quote(prompt) + "); }";
+        mainWebView.post(() -> {
+            try { mainWebView.evaluateJavascript(script, null); }
+            catch (Throwable error) { pendingPrompt = prompt; }
+        });
     }
 
     private boolean routeNavigation(Uri uri) {
@@ -247,6 +288,7 @@ public class PuckChatActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        pageLoaded = false;
         if (fileChooserCallback != null) {
             fileChooserCallback.onReceiveValue(null);
             fileChooserCallback = null;

@@ -1,5 +1,14 @@
 package com.ppt.k90monitor;
 
+import android.content.ContentResolver;
+import android.content.ContentUris;
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Base64;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
@@ -8,11 +17,16 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
@@ -35,11 +49,15 @@ import okio.ByteString;
 public final class PuckSpeechBridge {
     private static final String TTS_URL = "wss://openspeech.bytedance.com/api/v3/tts/unidirectional/stream";
     private static final int MAX_TTS_TEXT = 10_000;
+    private static final long MAX_SAVED_FILE_BYTES = 512L * 1024L * 1024L;
+    private static final String SAVE_FOLDER = "K90-Tools";
     private static final long MAX_LOCAL_TTS_BYTES = 24L * 1024L * 1024L;
     private static final String LOCAL_TTS_LOOPBACK = "http://127.0.0.1:8080/api/tts";
     private static final String LOCAL_TTS_LAN = "http://192.168.31.11:8080/api/tts";
 
     private final WebView webView;
+    private final Context appContext;
+    private final Map<String, SaveSession> saveSessions = new ConcurrentHashMap<>();
     private final OkHttpClient client;
     private final OkHttpClient localTtsClient;
     private volatile Call localTtsCall;
@@ -50,6 +68,7 @@ public final class PuckSpeechBridge {
 
     public PuckSpeechBridge(WebView webView) {
         this.webView = webView;
+        this.appContext = webView.getContext().getApplicationContext();
         this.client = new OkHttpClient.Builder()
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(0, TimeUnit.MILLISECONDS)
@@ -62,6 +81,160 @@ public final class PuckSpeechBridge {
                 .writeTimeout(30, TimeUnit.SECONDS)
                 .callTimeout(100, TimeUnit.SECONDS)
                 .build();
+    }
+
+    private static final class SaveSession {
+        final Uri uri;
+        final File file;
+        final OutputStream output;
+        final String displayPath;
+        long bytes;
+        SaveSession(Uri uri, File file, OutputStream output, String displayPath) {
+            this.uri = uri; this.file = file; this.output = output; this.displayPath = displayPath;
+        }
+    }
+
+    @JavascriptInterface
+    public String beginSaveFile(String fileName, String mimeType) {
+        String safeName = sanitizeFileName(fileName);
+        String type = mimeType == null || mimeType.trim().isEmpty() ? "application/octet-stream" : mimeType.trim();
+        String id = UUID.randomUUID().toString();
+        Uri uri = null;
+        boolean created = false;
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ContentResolver resolver = appContext.getContentResolver();
+                Uri collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI;
+                String relativePath = Environment.DIRECTORY_DOWNLOADS + "/" + SAVE_FOLDER + "/";
+                uri = findExistingDownload(resolver, collection, safeName, relativePath);
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.MediaColumns.DISPLAY_NAME, safeName);
+                values.put(MediaStore.MediaColumns.MIME_TYPE, type);
+                values.put(MediaStore.MediaColumns.RELATIVE_PATH, relativePath);
+                values.put(MediaStore.MediaColumns.IS_PENDING, 1);
+                if (uri == null) {
+                    uri = resolver.insert(collection, values);
+                    created = true;
+                } else {
+                    resolver.update(uri, values, null, null);
+                }
+                if (uri == null) throw new IOException("无法在 Downloads 中创建文件");
+                OutputStream output = resolver.openOutputStream(uri, "w");
+                if (output == null) throw new IOException("无法打开保存文件");
+                saveSessions.put(id, new SaveSession(uri, null, output, "Download/" + SAVE_FOLDER + "/" + safeName));
+            } else {
+                File base = appContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+                if (base == null) base = appContext.getFilesDir();
+                File dir = new File(base, SAVE_FOLDER);
+                if (!dir.exists() && !dir.mkdirs()) throw new IOException("无法创建 K90-Tools 下载目录");
+                File file = new File(dir, safeName);
+                OutputStream output = new FileOutputStream(file, false);
+                saveSessions.put(id, new SaveSession(null, file, output, file.getAbsolutePath()));
+            }
+            return id;
+        } catch (Exception error) {
+            if (uri != null) {
+                try {
+                    if (created) appContext.getContentResolver().delete(uri, null, null);
+                    else {
+                        ContentValues restore = new ContentValues();
+                        restore.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                        appContext.getContentResolver().update(uri, restore, null, null);
+                    }
+                } catch (Throwable ignored) { }
+            }
+            return "ERROR:" + safeMessage(error);
+        }
+    }
+
+    private Uri findExistingDownload(ContentResolver resolver, Uri collection, String name, String relativePath) {
+        String[] columns = {"_id"};
+        String selection = MediaStore.MediaColumns.DISPLAY_NAME + "=? AND " + MediaStore.MediaColumns.RELATIVE_PATH + "=?";
+        try (Cursor cursor = resolver.query(collection, columns, selection, new String[]{name, relativePath}, MediaStore.MediaColumns.DATE_MODIFIED + " DESC")) {
+            if (cursor != null && cursor.moveToFirst()) {
+                return ContentUris.withAppendedId(collection, cursor.getLong(0));
+            }
+        } catch (Exception ignored) { }
+        return null;
+    }
+
+    @JavascriptInterface
+    public boolean appendSaveFile(String id, String base64Chunk) {
+        SaveSession session = saveSessions.get(id);
+        if (session == null || base64Chunk == null) return false;
+        try {
+            byte[] data = Base64.decode(base64Chunk, Base64.DEFAULT);
+            synchronized (session) {
+                if (session.bytes + data.length > MAX_SAVED_FILE_BYTES) return false;
+                session.output.write(data);
+                session.bytes += data.length;
+            }
+            return true;
+        } catch (Exception error) {
+            return false;
+        }
+    }
+
+    @JavascriptInterface
+    public String finishSaveFile(String id) {
+        SaveSession session = saveSessions.remove(id);
+        if (session == null) return "ERROR:保存任务不存在";
+        try {
+            synchronized (session) {
+                session.output.flush();
+                session.output.close();
+            }
+            if (session.uri != null) {
+                ContentValues ready = new ContentValues();
+                ready.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                appContext.getContentResolver().update(session.uri, ready, null, null);
+            }
+            return session.displayPath;
+        } catch (Exception error) {
+            deleteSaveSession(session);
+            return "ERROR:" + safeMessage(error);
+        }
+    }
+
+    @JavascriptInterface
+    public void cancelSaveFile(String id) {
+        SaveSession session = saveSessions.remove(id);
+        if (session != null) deleteSaveSession(session);
+    }
+
+    private void deleteSaveSession(SaveSession session) {
+        try { synchronized (session) { session.output.close(); } } catch (Throwable ignored) { }
+        try {
+            if (session.uri != null) appContext.getContentResolver().delete(session.uri, null, null);
+            else if (session.file != null) session.file.delete();
+        } catch (Throwable ignored) { }
+    }
+
+    @JavascriptInterface
+    public String saveTextFile(String fileName, String mimeType, String content) {
+        String id = beginSaveFile(fileName, mimeType);
+        if (id.startsWith("ERROR:")) return id;
+        String value = content == null ? "" : content;
+        String encoded = Base64.encodeToString(value.getBytes(StandardCharsets.UTF_8), Base64.NO_WRAP);
+        if (!appendSaveFile(id, encoded)) {
+            cancelSaveFile(id);
+            return "ERROR:写入文本文件失败";
+        }
+        return finishSaveFile(id);
+    }
+
+    private static String sanitizeFileName(String value) {
+        String raw = value == null ? "K90-Tools-file.bin" : value.trim();
+        StringBuilder safe = new StringBuilder();
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            if (c < 32 || c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|') safe.append('_');
+            else safe.append(c);
+        }
+        String name = safe.toString().replace("..", "_").trim();
+        if (name.isEmpty() || ".".equals(name)) name = "K90-Tools-file.bin";
+        if (name.length() > 120) name = name.substring(name.length() - 120);
+        return name;
     }
 
     @JavascriptInterface

@@ -69,7 +69,8 @@ html.wechat-client
       "audio audio"
       "viewport viewport"
       "config speech"
-      "upload upload";
+      "upload upload"
+      "ping ping";
     gap: 18px 20px;
     align-items: start;
   }
@@ -246,6 +247,12 @@ html.wechat-client
     min-height: 44px;
     margin: 0;
   }
+  .app-container > #pingCard {
+    grid-area: ping;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+  }
 }
 
 /* 常见笔记本宽度：减少列数，避免按钮和配置挤压 */
@@ -339,7 +346,22 @@ html,body{max-width:100%;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:
 <div class="card" id="audioLabCard" hidden><div class="audio-title">🎛️ AUDIO WORKBENCH <button class="btn" id="audioLabClose" style="float:right;padding:5px 12px">收起</button></div><input id="audioLabFile" type="file" accept="audio/*,video/*,.wav,.mp3,.flac,.m4a,.ogg,.mp4,.webm" hidden><div class="audio-inline-buttons"><button class="btn" id="audioLabChoose">导入音视频</button><button class="btn" id="audioLabKeep" disabled>✂ 保留选段</button><button class="btn" id="audioLabUndo" disabled>撤销裁剪</button></div><div id="audioLabName" class="audio-file-name">暂无音频。可以使用页面底部上传的音视频，或在此导入。</div><canvas id="audioLabWave" class="audio-wave" height="105"></canvas><audio id="audioLabPlayer" controls></audio><div class="audio-row"><label>开始时间（秒）<input id="audioLabStart" class="input-style" type="number" step=".001" min="0" value="0"></label><label>结束时间（秒）<input id="audioLabEnd" class="input-style" type="number" step=".001" min="0" value="0"></label></div><div class="audio-row three"><label>增益 dB<input id="audioLabGain" class="input-style" type="number" value="0" min="-60" max="24"></label><label>淡入（秒）<input id="audioLabFadeIn" class="input-style" type="number" value="0" min="0" step=".1"></label><label>淡出（秒）<input id="audioLabFadeOut" class="input-style" type="number" value="0" min="0" step=".1"></label></div><label style="font-size:12px;color:#888"><input type="checkbox" id="audioLabNormalize">峰值归一化（98%）</label><div class="audio-row"><label>导出范围<select id="audioLabScope" class="input-style"><option value="selection">当前选段</option><option value="full">全部音频</option></select></label><label>导出格式<select id="audioLabFormat" class="input-style"><option value="mp3">MP3（192 kbps）</option><option value="wav">WAV（PCM 无压缩）</option><option value="flac">FLAC（无损）</option><option value="m4a">M4A（AAC）</option><option value="aac">AAC</option><option value="ogg">OGG</option><option value="opus">OPUS</option><option value="webm">WebM 音频</option></select></label></div><div class="audio-inline-buttons"><button class="btn" id="audioLabPreview" disabled>▶ 试听选段</button><button class="btn btn-tucao" id="audioLabExport" disabled>↓ 导出音频</button></div><p class="audio-hint">拖动波形选择音频。WAV、MP3 在本地处理，其他格式尝试加载 FFmpeg WebAssembly，音视频不会主动上传本站服务器。</p><div id="audioLabStatus" class="audio-status">准备就绪。</div></div>
 <div class="card" id="viewportCard"><div id="imageDisplayContainer" style="display:none;flex-direction:column;align-items:center;margin-top:15px;width:100%"><div id="originalImgWrapper" style="width:100%;text-align:center;margin-bottom:15px"><img id="displayedImage" style="max-width:100%;border-radius:6px;border:1px solid #333"></div><div id="modifiedImgWrapper" style="width:100%;text-align:center;display:none;margin-bottom:15px"><img id="modifiedImage" style="max-width:100%;border-radius:6px;border:1px solid #00f0ff"></div><div id="imageMetadataPreview" class="sub-text" style="display:none;width:100%;max-height:250px;overflow:auto;white-space:pre-wrap;word-break:break-word;text-align:left;background:#050505;border:1px dashed #333;padding:12px;border-radius:6px;font-size:11px;margin-bottom:10px"></div><div id="imageTimeLabel" class="sub-text"></div><div id="framePager" class="sub-text" style="display:none;margin-top:5px"></div><div class="button-grid" id="frameControls" style="display:none;margin-top:15px;width:100%"><button class="btn" id="prevButton">← 上一帧</button><button class="btn" id="nextButton">下一帧 →</button></div><div class="button-grid" id="editButtons" style="display:none;margin-top:15px;width:100%"><button class="btn" id="btnInvert">反色处理</button><button class="btn" id="btnGray">灰度去除</button><button class="btn" id="btnRestore">源图还原</button></div></div><div id="mediaPreview" style="margin-top:15px;display:flex;flex-direction:column;align-items:center;width:100%"></div></div>
 <div class="footer-banner"><input id="apiProxy" class="input-style" style="display:none" placeholder="🌐 PROXY_URL (留空则默认接口)"><input id="apiKey" type="password" class="input-style" placeholder="🔑 poixe.com API Key（文本模型）"><input id="imageApiKey" type="password" class="input-style" style="display:none" placeholder="🎨 apimart.ai API Key（图像模型）"><input id="customApiUrl" class="input-style" style="display:none" placeholder="🌐 API_BASE 例如 http://192.168.31.111:5001/v1/"><input id="customModelName" class="input-style" style="display:none" placeholder="🤖 MODEL_NAME 例如 Qwen3.5-9B"><input id="customApiKey" class="input-style" type="password" style="display:none" placeholder="🔑 CUSTOM_KEY 无鉴权可留空"><input id="hfApiKey" class="input-style" type="password" style="display:none" placeholder="🤗 Hugging Face Token（可留空）"><select id="hfGenerationMode" class="input-style" style="display:none"><option value="auto">MODE: 自动判断生图 / 改图</option><option value="Create an image">MODE: 生图</option><option value="Edit an image">MODE: 改图</option><option value="Transparent PNG">MODE: 透明 PNG</option></select><div id="imageOptionsWrapper" style="display:none"><select id="imageResolution" class="input-style"><option value="1k">RES: 1K STANDARD</option><option value="2k">RES: 2K HIGH-DEF</option><option value="4k">RES: 4K ULTRA-HD</option></select><select id="imgSize" class="input-style"><option value="1:1">SIZE: 1:1 正方形</option><option value="3:2">SIZE: 3:2 横图</option><option value="2:3">SIZE: 2:3 竖图</option><option value="4:3">SIZE: 4:3 横图</option><option value="3:4">SIZE: 3:4 竖图</option><option value="16:9">SIZE: 16:9 横图</option><option value="9:16">SIZE: 9:16 竖图</option><option value="21:9">SIZE: 21:9 宽屏</option></select></div><select id="unifiedModel" class="input-style"><optgroup label="🧠 自定义对话端点"><option value="custom-chat">自定义本地云端模型</option></optgroup><optgroup label="💬 文本模型 · poixe.com"><option value="deepseek-v4-flash" selected>DeepSeek V4 Flash</option></optgroup><optgroup label="🎨 图像模型 · apimart.ai"><option value="gpt-image-2">GPT Image 2</option></optgroup><optgroup label="🤗 Hugging Face"><option value="hf-qwen-image">HF Qwen Image 2.1</option></optgroup></select></div>
-<div class="card speech-settings"><details><summary>🔊 语音朗读设置</summary><p class="small-note">支持豆包 TTS 和本地 TTS。选择本地服务时由 Android 原生网络层请求，不受 WebView HTTPS 混合内容和浏览器 CORS 限制。</p><div class="speech-config-grid"><label>朗读引擎<select id="ttsProvider" class="input-style"><option value="doubao">豆包 TTS</option><option value="local">本地 TTS</option></select></label><label>本地 TTS 地址<input id="localTtsUrl" class="input-style" list="localTtsPresets" value="http://127.0.0.1:8080/api/tts" placeholder="http://127.0.0.1:8080/api/tts"><datalist id="localTtsPresets"><option value="http://127.0.0.1:8080/api/tts"></option><option value="http://192.168.31.11:8080/api/tts"></option></datalist></label><label>本地音色（可选）<input id="localTtsVoice" class="input-style" placeholder="voice，可留空"></label><label>豆包 TTS API Key<input id="ttsApiKey" class="input-style" type="password" placeholder="豆包语音合成 API Key"></label><label>豆包 TTS 资源 ID<input id="ttsResourceId" class="input-style" value="seed-tts-2.0" placeholder="seed-tts-2.0"></label><label>豆包默认音色 ID<input id="ttsSpeaker" class="input-style" value="zh_female_vv_uranus_bigtts" placeholder="豆包音色 ID"></label></div><button class="btn btn-ai" id="btnSaveSpeechSettings" type="button">保存语音设置</button></details></div><input type="file" id="universalFile" class="input-style" accept="image/*,audio/*,video/*"></div>
+<div class="card speech-settings"><details><summary>🔊 语音朗读设置</summary><p class="small-note">支持豆包 TTS 和本地 TTS。选择本地服务时由 Android 原生网络层请求，不受 WebView HTTPS 混合内容和浏览器 CORS 限制。</p><div class="speech-config-grid"><label>朗读引擎<select id="ttsProvider" class="input-style"><option value="doubao">豆包 TTS</option><option value="local">本地 TTS</option></select></label><label>本地 TTS 地址<input id="localTtsUrl" class="input-style" list="localTtsPresets" value="http://127.0.0.1:8080/api/tts" placeholder="http://127.0.0.1:8080/api/tts"><datalist id="localTtsPresets"><option value="http://127.0.0.1:8080/api/tts"></option><option value="http://192.168.31.11:8080/api/tts"></option></datalist></label><label>本地音色（可选）<input id="localTtsVoice" class="input-style" placeholder="voice，可留空"></label><label>豆包 TTS API Key<input id="ttsApiKey" class="input-style" type="password" placeholder="豆包语音合成 API Key"></label><label>豆包 TTS 资源 ID<input id="ttsResourceId" class="input-style" value="seed-tts-2.0" placeholder="seed-tts-2.0"></label><label>豆包默认音色 ID<input id="ttsSpeaker" class="input-style" value="zh_female_vv_uranus_bigtts" placeholder="豆包音色 ID"></label></div><button class="btn btn-ai" id="btnSaveSpeechSettings" type="button">保存语音设置</button></details></div><input type="file" id="universalFile" class="input-style" accept="image/*,audio/*,video/*"><div class="card" id="pingCard">
+ <div class="ping-box" id="pingToggle" role="button" tabindex="0" aria-label="切换 Ping 节点">
+  <div class="ping-site" id="siteName">baidu.com</div>
+  <div class="ping-ms" id="pingText">检测中...</div>
+  <div style="color:#00f0ff;font-size:12px">切换节点 ⌄</div>
+ </div>
+ <div class="ping-desc"><span>LINK LATENCY <span id="descSite">baidu.com</span>:</span><span id="performance-result">LOADING...</span></div>
+ <div class="ping-chart-wrap"><canvas id="chart"></canvas></div>
+ <p class="small-note">网络连通性延迟估算，不是 ICMP Ping。</p>
+</div></div>
+<div class="ping-modal" id="pingModal"><div class="ping-sheet" id="pingSheet">
+ <div class="item" data-url="https://www.baidu.com" data-name="baidu.com">百度</div>
+ <div class="item" data-url="https://weibo.com" data-name="weibo.com">微博</div>
+ <div class="item" data-url="https://www.douyin.com" data-name="douyin.com">抖音</div>
+ <div class="item cancel">取消</div>
+</div></div>
 <script>
 'use strict';
 const $=id=>document.getElementById(id), txt=$('universalText'), fileEl=$('universalFile');
@@ -352,15 +374,79 @@ function bind(id,fn){$(id)?.addEventListener('click',fn)}
 function saveField(id){let value=$(id).value.trim();try{localStorage.setItem('tcq_html_'+id,value)}catch{}return value}
 for(let id of ['apiProxy','apiKey','imageApiKey','customApiUrl','customModelName','customApiKey','hfApiKey','imageResolution','ttsProvider','localTtsUrl','localTtsVoice','ttsApiKey','ttsResourceId','ttsSpeaker']){try{$(id).value=localStorage.getItem('tcq_html_'+id)||$(id).value}catch{}$(id).addEventListener('change',()=>saveField(id))}bind('btnSaveSpeechSettings',()=>{for(const id of ['ttsProvider','localTtsUrl','localTtsVoice','ttsApiKey','ttsResourceId','ttsSpeaker'])saveField(id);log('语音朗读设置已保存到当前设备','SAVED')});function updateStats(){const t=txt.value;const words=t.split(/[\s.,/#!$%^&*;:{}=\-_`~()。,、；：？！…—·「」『』（）［］【】《》〈〉"']+/).filter(Boolean);const counts={};words.forEach(w=>counts[w]=(counts[w]||0)+1);const pairs={total:t.length,chinese:(t.match(/[\u3400-\u9fff]/g)||[]).length,punctuation:(t.match(/[.,/#!$%^&*;:{}=\-_`~()。,、；：？！…—·「」『』（）［］【】《》〈〉"']/g)||[]).length,alphabet:(t.match(/[a-zA-Z]/g)||[]).length,numbers:(t.match(/\d/g)||[]).length,duplicate:Object.values(counts).filter(v=>v>1).reduce((a,b)=>a+b,0)};for(const [id,n] of Object.entries(pairs))$(id).textContent=({total:'总数',chinese:'汉字',punctuation:'标点',alphabet:'字母',numbers:'数字',duplicate:'重复'}[id])+': '+n}
 txt.addEventListener('input',updateStats);
-function updateMemoryStatus(){$('aiMemoryStatus').textContent='AI 对话记忆：'+chatContext.filter(m=>m.role==='assistant').length+' 轮 / '+chatContext.length+' 条消息（仅此浏览器保存，支持 JSON）'}
-function normalizeMemory(raw){const a=Array.isArray(raw)?raw:raw?.messages;if(!Array.isArray(a))throw Error('记忆 JSON 必须含 messages 数组');return a.slice(-MAX_MEMORY).filter(m=>['user','assistant','system'].includes(m?.role)).map(m=>({role:m.role,content:typeof m.content==='string'?m.content:Array.isArray(m.content)?m.content.map(p=>p.text||'[历史图片已省略]').join('\n'):'',...(m.model?{model:String(m.model)}:{})}))}
-try{chatContext=normalizeMemory(JSON.parse(localStorage.getItem(MEMORY_KEY)||'[]'))}catch{chatContext=[]}updateMemoryStatus();
-function recordChat(user,reply,model){chatContext.push({role:'user',content:user||'[图片提问]'},{role:'assistant',content:reply,model});chatContext=chatContext.slice(-MAX_MEMORY);try{localStorage.setItem(MEMORY_KEY,JSON.stringify(chatContext))}catch{log('无法写入本地存储，请导出记忆','STORAGE WARNING',false)}updateMemoryStatus()}
-function downloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
-function downloadText(content,name,mime='text/plain'){downloadBlob(new Blob([content],{type:mime}),name)}
+let memoryArchivePath='',ttsNotice='';
+function memoryArchiveData(){return JSON.stringify({version:4,type:'ai-chat-memory',exportedAt:new Date().toISOString(),messages:chatContext},null,2)}
+function updateMemoryStatus(){
+ const count=chatContext.filter(m=>m.role==='assistant').length;
+ $('aiMemoryStatus').textContent='AI 对话记忆：'+count+' 轮 / '+chatContext.length+' 条消息（本机保存）'+(memoryArchivePath?' · JSON：'+memoryArchivePath:' · JSON 自动备份等待首次对话')+(ttsNotice?' · '+ttsNotice:'');
+}
+function persistMemoryArchive(){
+ try{
+  if(window.AndroidPuck&&typeof AndroidPuck.saveTextFile==='function'){
+   const path=AndroidPuck.saveTextFile('ai_chat_memory.json','application/json',memoryArchiveData());
+   if(path&&!String(path).startsWith('ERROR:'))memoryArchivePath=String(path);
+   else memoryArchivePath='备份失败：'+String(path||'未知错误');
+  }
+ }catch(error){memoryArchivePath='备份失败：'+(error.message||'未知错误')}
+ updateMemoryStatus();
+}
+function recordChat(user,reply,model){
+ chatContext.push({role:'user',content:user||'[图片提问]'},{role:'assistant',content:reply,model});
+ chatContext=chatContext.slice(-MAX_MEMORY);
+ try{localStorage.setItem(MEMORY_KEY,JSON.stringify(chatContext))}catch{log('无法写入本地存储，请检查存储空间','STORAGE WARNING',false)}
+ persistMemoryArchive();
+}
+function bytesToBase64(bytes){let binary='';for(let i=0;i<bytes.length;i+=0x8000)binary+=String.fromCharCode(...bytes.subarray(i,i+0x8000));return btoa(binary)}
+async function downloadBlob(blob,name){
+ if(window.AndroidPuck&&typeof AndroidPuck.beginSaveFile==='function'){
+  const id=AndroidPuck.beginSaveFile(name,blob.type||'application/octet-stream');
+  if(!id||String(id).startsWith('ERROR:'))throw Error(String(id||'无法创建保存文件'));
+  try{
+   if(blob.stream){
+    const reader=blob.stream().getReader();
+    while(true){
+     const part=await reader.read();if(part.done)break;
+     const bytes=part.value;
+     for(let i=0;i<bytes.length;i+=48*1024){
+      if(!AndroidPuck.appendSaveFile(id,bytesToBase64(bytes.subarray(i,Math.min(bytes.length,i+48*1024)))))throw Error('写入文件失败或文件超过 512 MB');
+     }
+    }
+   }else{
+    const bytes=new Uint8Array(await blob.arrayBuffer());
+    for(let i=0;i<bytes.length;i+=48*1024)if(!AndroidPuck.appendSaveFile(id,bytesToBase64(bytes.subarray(i,Math.min(bytes.length,i+48*1024)))))throw Error('写入文件失败或文件超过 512 MB');
+   }
+   const path=AndroidPuck.finishSaveFile(id);
+   if(!path||String(path).startsWith('ERROR:'))throw Error(String(path||'文件保存失败'));
+   return String(path);
+  }catch(error){try{AndroidPuck.cancelSaveFile(id)}catch{}throw error}
+ }
+ const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);return '浏览器默认下载目录'
+}
+async function downloadText(content,name,mime='text/plain'){return await downloadBlob(new Blob([content],{type:mime}),name)}
 async function copyTextCompat(value){try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(value);return true}}catch{}const el=document.createElement('textarea');el.value=value;el.readOnly=true;el.style.cssText='position:fixed;left:-9999px;top:0;opacity:0';document.body.appendChild(el);el.focus();el.select();let ok=false;try{ok=document.execCommand('copy')}catch{}el.remove();return ok}
-bind('btnExportMemory',()=>{if(!chatContext.length)return alert('暂无对话记忆');downloadText(JSON.stringify({version:3,type:'ai-chat-memory',exportedAt:new Date().toISOString(),messages:chatContext},null,2),'ai_chat_memory_'+Date.now()+'.json','application/json');log('对话记忆 JSON 已导出')});bind('btnImportMemory',()=>$('memoryFileInput').click());$('memoryFileInput').addEventListener('change',async e=>{try{const f=e.target.files[0];if(!f)return;if(f.size>5*1048576)throw Error('JSON 不能超过 5 MB');chatContext=normalizeMemory(JSON.parse(await f.text()));localStorage.setItem(MEMORY_KEY,JSON.stringify(chatContext));updateMemoryStatus();log('导入 '+chatContext.length+' 条对话记录')}catch(e){alert(e.message)}e.target.value=''});bind('btnClearMemory',()=>{if(confirm('确定清空本浏览器的 AI 对话记忆？')){chatContext=[];localStorage.removeItem(MEMORY_KEY);updateMemoryStatus();log('AI 对话记忆已清空')}});
-function onModelChange(){const m=$('unifiedModel').value,custom=m==='custom-chat',hf=m==='hf-qwen-image',image=IMAGE_MODELS.includes(m),gpt=m==='gpt-image-2';const hasImg=!!(modifiedImgSrc||originalImgSrc);$('apiKey').style.display=TEXT_MODELS.includes(m)?'block':'none';$('imageApiKey').style.display=image?'block':'none';$('apiProxy').style.display='none';for(const id of ['customApiUrl','customModelName','customApiKey'])$(id).style.display=custom?'block':'none';for(const id of ['hfApiKey','hfGenerationMode'])$(id).style.display=hf?'block':'none';$('imageOptionsWrapper').style.display=image||hf?'block':'none';$('imageResolution').style.display=gpt?'block':'none';$('imgSize').style.display=image||hf?'block':'none';const btn=$('btnCombinedAction');btn.textContent=document.documentElement.classList.contains('wechat-client')?'AI发送':custom?(hasImg?'🖼️ 自定义看图':'💬 文本测试'):hf?(hasImg?'🎨 HF 改图':'🎨 HF 生图'):image?(hasImg?'🎨 AI 改图':'🎨 AI 生图'):hasImg?'🖼️ 图像问答':'💬 文本测试';btn.className='btn '+(image||hf?'btn-ai':'btn-tucao')}
+bind('btnExportMemory',async()=>{
+ if(!chatContext.length)return alert('暂无对话记忆');
+ try{const path=await downloadText(memoryArchiveData(),'ai_chat_memory_'+Date.now()+'.json','application/json');log('对话记忆 JSON 已保存到：'+path,'SAVED')}
+ catch(error){log('JSON 导出失败：'+(error.message||'未知错误'),'SAVE ERROR',false)}
+});
+bind('btnImportMemory',()=>$('memoryFileInput').click());
+$('memoryFileInput').addEventListener('change',async e=>{
+ try{
+  const f=e.target.files[0];if(!f)return;
+  if(f.size>5*1048576)throw Error('JSON 不能超过 5 MB');
+  chatContext=normalizeMemory(JSON.parse(await f.text()));
+  localStorage.setItem(MEMORY_KEY,JSON.stringify(chatContext));
+  persistMemoryArchive();
+  log('已导入 '+chatContext.length+' 条对话记录，并更新 Downloads/K90-Tools/ai_chat_memory.json');
+ }catch(error){alert(error.message)}
+ e.target.value='';
+});
+bind('btnClearMemory',()=>{
+ if(confirm('确定清空本浏览器的 AI 对话记忆？')){
+  chatContext=[];localStorage.removeItem(MEMORY_KEY);persistMemoryArchive();updateMemoryStatus();log('AI 对话记忆已清空');
+ }
+});
+function onModelChange(){const m=$('unifiedModel').value,custom=m==='custom-chat',hf=m==='hf-qwen-image',image=IMAGE_MODELS.includes(m),gpt=m==='gpt-image-2';const hasImg=!!(modifiedImgSrc||originalImgSrc);$('apiKey').style.display=TEXT_MODELS.includes(m)?'block':'none';$('imageApiKey').style.display=image?'block':'none';$('apiProxy').style.display='none';for(const id of ['customApiUrl','customModelName','customApiKey'])$(id).style.display=custom?'block':'none';for(const id of ['hfApiKey','hfGenerationMode'])$(id).style.display=hf?'block':'none';$('imageOptionsWrapper').style.display=image||hf?'block':'none';$('imageResolution').style.display=gpt?'block':'none';$('imgSize').style.display=image||hf?'block':'none';const btn=$('btnCombinedAction');btn.textContent=document.documentElement.classList.contains('wechat-client')?'AI发送':custom?(hasImg?'🖼️ 自定义看图':'💬 AI发送'):hf?(hasImg?'🎨 HF 改图':'🎨 HF 生图'):image?(hasImg?'🎨 AI 改图':'🎨 AI 生图'):hasImg?'🖼️ 图像问答':'💬 AI发送';btn.className='btn '+(image||hf?'btn-ai':'btn-tucao')}
 try{const stored=localStorage.getItem('tcq_html_unifiedModel');if([...$('unifiedModel').options].some(o=>o.value===stored))$('unifiedModel').value=stored}catch{}
 $('unifiedModel').addEventListener('change',()=>{try{localStorage.setItem('tcq_html_unifiedModel',$('unifiedModel').value)}catch{}onModelChange()});onModelChange();
 function getBase(model){return IMAGE_MODELS.includes(model)?'https://api.apimart.ai':'https://api.poixe.com'}
@@ -371,10 +457,55 @@ async function optimizeImage(src,max=1536){const blob=await imageBlob(src),obj=U
 function imageResult(data){const d=Array.isArray(data?.data)?data.data[0]:data?.data||data;const values=[d?.result?.images?.[0]?.url?.[0],d?.result?.images?.[0]?.url,d?.result?.image_urls?.[0],d?.result?.url,d?.result?.image_url,d?.images?.[0]?.url?.[0],d?.images?.[0]?.url,d?.url,d?.image_url,d?.data?.[0]?.url];return values.find(v=>typeof v==='string'&&/^(https?:\/\/|data:image\/)/i.test(v))||''}
 function setupImage(url,edited=false){if(edited){modifiedImgSrc=url;$('modifiedImage').src=url;$('modifiedImgWrapper').style.display='block'}else{originalImgSrc=url;modifiedImgSrc='';$('displayedImage').src=url;$('modifiedImgWrapper').style.display='none'}$('imageDisplayContainer').style.display='flex';$('editButtons').style.display='grid';onModelChange()}
 async function pollImage(base,key,id){for(let i=0;i<45;i++){await sleep(i?4000:5000);const d=await apiJson(base+'/v1/tasks/'+encodeURIComponent(id),{headers:{Authorization:'Bearer '+key}}),v=Array.isArray(d.data)?d.data[0]:d.data||d,s=String(v.status||d.status||'').toLowerCase(),url=imageResult(d);$('respStatus').textContent='RENDER: '+(s||'QUEUED')+' ['+(i+1)+'/45]';if(url&&(!s||['completed','success','succeeded','finished'].includes(s)))return url;if(['error','failed','cancelled','canceled'].includes(s))throw Error(JSON.stringify(v.error||d.error||s))}throw Error('任务超时，任务号：'+id)}
-function getOutputTokenCount(usage,answer){const values=[usage?.completion_tokens,usage?.output_tokens,usage?.completionTokens,usage?.generated_tokens];for(const value of values){if(value!==undefined&&value!==null&&Number.isFinite(Number(value))&&Number(value)>=0)return{count:Number(value),estimated:false}}const total=Number(usage?.total_tokens),input=Number(usage?.prompt_tokens);if(usage?.total_tokens!=null&&usage?.prompt_tokens!=null&&Number.isFinite(total)&&Number.isFinite(input)&&total>=input)return{count:total-input,estimated:false};const cjk=(answer.match(/[\u3400-\u9fff]/g)||[]).length,other=answer.replace(/[\u3400-\u9fff]/g,'').length;return{count:Math.max(1,Math.round(cjk+other/4)),estimated:true}}async function runAi(){const m=$('unifiedModel').value,prompt=txt.value.trim(),src=modifiedImgSrc||originalImgSrc,hasImage=!!src,btn=$('btnCombinedAction');if(!prompt&&!hasImage)return alert('请填写提示词或选择图片');btn.disabled=true;log('正在连接 API…','CONNECTING');const t=performance.now();try{if(m==='hf-qwen-image'){await runHf(prompt,src);return}if(IMAGE_MODELS.includes(m)){const key=saveField('imageApiKey');if(!key)throw Error('请先填写 apimart.ai API Key');const base=getBase(m);const body={model:m,prompt:prompt||'请基于提供的图片生成',n:1,size:$('imgSize').value};if(m==='gpt-image-2')body.resolution=$('imageResolution').value;if(hasImage)body.image_urls=[await optimizeImage(src)];const d=await apiJson(base+'/v1/images/generations',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(body)});let result=imageResult(d);if(!result){const record=Array.isArray(d.data)?d.data[0]:d.data||d;const id=record.task_id||record.id||d.task_id;if(!id)throw Error('没有返回图片链接或任务 ID');result=await pollImage(base,key,id)}setupImage(result,hasImage);log('图片生成完成 · '+((performance.now()-t)/1000).toFixed(2)+' 秒','RENDER COMPLETE');return}
+function getOutputTokenCount(usage,answer){const values=[usage?.completion_tokens,usage?.output_tokens,usage?.completionTokens,usage?.generated_tokens];for(const value of values){if(value!==undefined&&value!==null&&Number.isFinite(Number(value))&&Number(value)>=0)return{count:Number(value),estimated:false}}const total=Number(usage?.total_tokens),input=Number(usage?.prompt_tokens);if(usage?.total_tokens!=null&&usage?.prompt_tokens!=null&&Number.isFinite(total)&&Number.isFinite(input)&&total>=input)return{count:total-input,estimated:false};const cjk=(answer.match(/[\u3400-\u9fff]/g)||[]).length,other=answer.replace(/[\u3400-\u9fff]/g,'').length;return{count:Math.max(1,Math.round(cjk+other/4)),estimated:true}}let overlayAutoSpeakNext=false;
+async function runAi(){const autoSpeak=overlayAutoSpeakNext;overlayAutoSpeakNext=false;const m=$('unifiedModel').value,prompt=txt.value.trim(),src=modifiedImgSrc||originalImgSrc,hasImage=!!src,btn=$('btnCombinedAction');if(!prompt&&!hasImage)return alert('请填写提示词或选择图片');btn.disabled=true;log('正在连接 API…','CONNECTING');const t=performance.now();try{if(m==='hf-qwen-image'){await runHf(prompt,src);return}if(IMAGE_MODELS.includes(m)){const key=saveField('imageApiKey');if(!key)throw Error('请先填写 apimart.ai API Key');const base=getBase(m);const body={model:m,prompt:prompt||'请基于提供的图片生成',n:1,size:$('imgSize').value};if(m==='gpt-image-2')body.resolution=$('imageResolution').value;if(hasImage)body.image_urls=[await optimizeImage(src)];const d=await apiJson(base+'/v1/images/generations',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(body)});let result=imageResult(d);if(!result){const record=Array.isArray(d.data)?d.data[0]:d.data||d;const id=record.task_id||record.id||d.task_id;if(!id)throw Error('没有返回图片链接或任务 ID');result=await pollImage(base,key,id)}setupImage(result,hasImage);log('图片生成完成 · '+((performance.now()-t)/1000).toFixed(2)+' 秒','RENDER COMPLETE');return}
 let endpoint,model,key='';if(m==='custom-chat'){endpoint=completionUrl(saveField('customApiUrl'));model=saveField('customModelName');key=saveField('customApiKey');if(!model)throw Error('请输入自定义模型名称')}else{model=m;key=saveField('apiKey');endpoint=completionUrl(getBase(m));if(!key)throw Error('请先输入自己的文本模型 API Key')}
-const current={role:'user',content:hasImage?[{type:'text',text:prompt||'请分析图片'},{type:'image_url',image_url:{url:await optimizeImage(src)}}]:prompt};const messages=[...chatContext.slice(-40).map(({role,content})=>({role,content})),current];const headers={'Content-Type':'application/json'};if(key)headers.Authorization='Bearer '+key;const requestStart=performance.now();const d=await apiJson(endpoint,{method:'POST',headers,body:JSON.stringify({model,messages,stream:false,max_tokens:4096})});const requestSeconds=Math.max((performance.now()-requestStart)/1000,0.001);const content=d.choices?.[0]?.message?.content;const answer=typeof content==='string'?content:Array.isArray(content)?content.map(v=>v.text||'').join('\n'):'';if(!answer)throw Error('模型未返回有效文本：'+JSON.stringify(d).slice(0,250));const outputStats=getOutputTokenCount(d.usage,answer),tkps=outputStats.count/requestSeconds;recordChat(prompt,answer,model);txt.value=answer;updateStats();log('⏱️ API: '+requestSeconds.toFixed(2)+'s | OUTPUT TOKENS: '+outputStats.count+(outputStats.estimated?' (估算)':'')+' | TK/s: '+(outputStats.estimated?'~':'')+tkps.toFixed(2)+' (请求平均) | TOTAL TOKENS: '+(d.usage?.total_tokens??'?')+' | MEMORY: '+chatContext.length+'\n\n'+answer,'✅ UPLINK SECURED')}catch(e){log('SYS_ERR: '+e.message,'❌ LINK FAILED',false)}finally{btn.disabled=false;onModelChange()}}
+const current={role:'user',content:hasImage?[{type:'text',text:prompt||'请分析图片'},{type:'image_url',image_url:{url:await optimizeImage(src)}}]:prompt};const messages=[...chatContext.slice(-40).map(({role,content})=>({role,content})),current];const headers={'Content-Type':'application/json'};if(key)headers.Authorization='Bearer '+key;const requestStart=performance.now();const d=await apiJson(endpoint,{method:'POST',headers,body:JSON.stringify({model,messages,stream:false,max_tokens:4096})});const requestSeconds=Math.max((performance.now()-requestStart)/1000,0.001);const content=d.choices?.[0]?.message?.content;const answer=typeof content==='string'?content:Array.isArray(content)?content.map(v=>v.text||'').join('\n'):'';if(!answer)throw Error('模型未返回有效文本：'+JSON.stringify(d).slice(0,250));const outputStats=getOutputTokenCount(d.usage,answer),tkps=outputStats.count/requestSeconds;recordChat(prompt,answer,model);txt.value=answer;updateStats();log('⏱️ API: '+requestSeconds.toFixed(2)+'s | OUTPUT TOKENS: '+outputStats.count+(outputStats.estimated?' (估算)':'')+' | TK/s: '+(outputStats.estimated?'~':'')+tkps.toFixed(2)+' (请求平均) | TOTAL TOKENS: '+(d.usage?.total_tokens??'?')+' | MEMORY: '+chatContext.length+'\n\n'+answer,'✅ UPLINK SECURED')if(autoSpeak&&!speakText(answer,true)){ttsNotice='自动朗读未启动：请配置豆包 TTS Key 或本地 TTS';updateMemoryStatus()}}catch(e){log('SYS_ERR: '+e.message,'❌ LINK FAILED',false)}finally{btn.disabled=false;onModelChange()}}
 bind('btnCombinedAction',runAi);
+window.receiveOverlayPrompt=function(prompt){
+ const value=String(prompt||'').trim();if(!value)return;
+ let model=$('unifiedModel').value;
+ if(!TEXT_MODELS.includes(model)&&model!=='custom-chat'){
+  $('unifiedModel').value='deepseek-v4-flash';
+  try{localStorage.setItem('tcq_html_unifiedModel','deepseek-v4-flash')}catch{}
+  onModelChange();model='deepseek-v4-flash';
+ }
+ const ready=model==='custom-chat'
+  ?!!(saveField('customApiUrl')&&saveField('customModelName')&&saveField('customApiKey'))
+  :!!saveField('apiKey');
+ txt.value=value;updateStats();
+ if(!ready){log('悬浮窗发送未执行：请先配置文本模型 API 地址、模型名称和 API Key','API CONFIG',false);return}
+ overlayAutoSpeakNext=true;runAi();
+};
+let currentUrl='https://www.baidu.com',pingData=[];
+bind('pingToggle',()=>$('pingModal').classList.add('show'));
+$('pingToggle').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('pingModal').classList.add('show')}});
+$('pingModal').addEventListener('click',e=>{if(e.target===$('pingModal'))$('pingModal').classList.remove('show')});
+document.querySelectorAll('#pingSheet .item').forEach(el=>el.addEventListener('click',()=>{
+ if(el.dataset.url){currentUrl=el.dataset.url;$('siteName').textContent=el.dataset.name;$('descSite').textContent=el.dataset.name;pingData=[];doPing()}
+ $('pingModal').classList.remove('show')
+}));
+function drawChart(){
+ const canvas=$('chart'),rect=canvas.getBoundingClientRect(),w=Math.max(1,rect.width),h=Math.max(1,rect.height),dpr=Math.min(2,devicePixelRatio||1);
+ canvas.width=w*dpr;canvas.height=h*dpr;const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+ ctx.strokeStyle='#333';ctx.fillStyle='#666';ctx.font='10px monospace';
+ const left=30,bottom=h-20,max=Math.max(60,...pingData.map(v=>v.ms));
+ for(let i=0;i<=4;i++){const y=bottom-i*(bottom-10)/4;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w,y);ctx.stroke();ctx.fillText(Math.round(max*i/4),2,y)}
+ if(pingData.length<2)return;
+ const points=pingData.map((v,i)=>[left+i*(w-left-10)/(pingData.length-1),bottom-v.ms/max*(bottom-10)]);
+ ctx.strokeStyle='#00ff41';ctx.lineWidth=2;ctx.beginPath();points.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.stroke();
+}
+function addPing(ms){pingData.push({ms,time:Date.now()});if(pingData.length>20)pingData.shift();drawChart()}
+function doPing(){
+ const image=new Image(),start=performance.now();let done=false;
+ const timer=setTimeout(()=>finish(false),2000);
+ function finish(ok){if(done)return;done=true;clearTimeout(timer);const ms=Math.round(performance.now()-start);$('pingText').textContent=ok?ms+' ms':'连接失败';$('pingText').style.color=ok?'#00ff41':'#ff2a2a';addPing(ok?ms:500);$('performance-result').textContent=ok?'最近响应：'+ms+' ms':'节点暂不可达'}
+ image.onload=()=>finish(true);image.onerror=()=>finish(false);image.src=currentUrl+'/favicon.ico?t='+Date.now();
+}
+setTimeout(doPing,800);
+setInterval(()=>{if(document.visibilityState==='visible')doPing()},3000);
+window.addEventListener('resize',drawChart);
+
 
 async function runHf(prompt,src){
  if(!prompt)throw Error('HF 需要填写提示词');
@@ -421,23 +552,34 @@ function handleNativeTtsResult(message,engineName){
 }
 window.onNativeTtsResult=message=>handleNativeTtsResult(message,'豆包 TTS');
 window.onNativeLocalTtsResult=message=>handleNativeTtsResult(message,'本地 TTS');
-bind('btnTts',async()=>{
- if(ttsBusy||nativeTtsPending){if(window.AndroidPuck){AndroidPuck.cancelTts();AndroidPuck.cancelLocalTts()}resetTts();return}
- const text=txt.value.trim();if(!text)return alert('请输入文字');
- if(!window.AndroidPuck){log('Android 语音模块未加载，请重新打开 K90-Tools','TTS ERROR',false);return}
+function speakText(text,automatic=false){
+ const value=String(text||'').trim();if(!value)return false;
+ if(!window.AndroidPuck){if(!automatic)alert('Android 语音模块未加载，请重新打开 K90-Tools');return false}
+ if(ttsBusy||nativeTtsPending){AndroidPuck.cancelTts();AndroidPuck.cancelLocalTts();resetTts()}
  const engine=saveField('ttsProvider')||'doubao';
- nativeTtsText=text;nativeTtsPending=true;ttsBusy=true;
+ nativeTtsText=value;nativeTtsPending=true;ttsBusy=true;
  if(engine==='local'){
   const endpoint=saveField('localTtsUrl')||'http://127.0.0.1:8080/api/tts';
   const voice=saveField('localTtsVoice');
-  $('btnTts').textContent='⏳ 本地合成中…';
-  AndroidPuck.synthesizeLocal(text,endpoint,voice);return
+  $('btnTts').textContent=automatic?'⏳ 自动朗读中…':'⏳ 本地合成中…';
+  AndroidPuck.synthesizeLocal(value,endpoint,voice);return true
  }
  const apiKey=saveField('ttsApiKey'),resourceId=saveField('ttsResourceId')||'seed-tts-2.0',speaker=saveField('ttsSpeaker')||'zh_female_vv_uranus_bigtts';
- if(!apiKey){nativeTtsPending=false;ttsBusy=false;$('btnTts').textContent='语音朗读';return alert('请先在语音朗读设置中填写豆包 TTS API Key')}
- $('btnTts').textContent='⏳ 豆包合成中…';
- AndroidPuck.synthesize(text,apiKey,resourceId,speaker);
+ if(!apiKey){
+  nativeTtsPending=false;ttsBusy=false;$('btnTts').textContent='语音朗读';
+  if(automatic){ttsNotice='自动朗读未启动：缺少豆包 TTS API Key';updateMemoryStatus()}
+  else alert('请先在语音朗读设置中填写豆包 TTS API Key');
+  return false
+ }
+ $('btnTts').textContent=automatic?'⏳ 自动朗读中…':'⏳ 豆包合成中…';
+ ttsNotice='';updateMemoryStatus();
+ AndroidPuck.synthesize(value,apiKey,resourceId,speaker);return true
+}
+bind('btnTts',()=>{
+ if(ttsBusy||nativeTtsPending){if(window.AndroidPuck){AndroidPuck.cancelTts();AndroidPuck.cancelLocalTts()}resetTts();return}
+ speakText(txt.value.trim(),false)
 });
+
 bind('btnMdPreview',()=>{if(!txt.value.trim())return alert('请先输入 Markdown');if(!window.marked||!window.DOMPurify)return alert('CDN 组件加载失败');const win=window.open('about:blank','_blank');if(!win)return alert('浏览器拦截了新窗口');const html=DOMPurify.sanitize(marked.parse(txt.value,{gfm:true,breaks:true}),{USE_PROFILES:{html:true}});win.document.open();win.document.write('<!DOCTYPE html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Markdown 预览</title><style>body{max-width:900px;margin:36px auto;padding:0 22px;background:#0c0e12;color:#e4e8ed;font:16px/1.8 system-ui;overflow-wrap:anywhere}h1,h2,h3{color:#75f3ae}a{color:#63c8ff}pre{overflow:auto;padding:16px;background:#151b23}img{max-width:100%}table{border-collapse:collapse}td,th{border:1px solid #555;padding:8px}</style>'+html);win.document.close()});
 bind('btnHtmlPreview',()=>{if(!txt.value.trim())return alert('请先输入 HTML');const url=URL.createObjectURL(new Blob([txt.value],{type:'text/html;charset=utf-8'}));window.open(url,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(url),60000)});
 bind('btnHideResp',()=>$('responseWrap').style.display='none');
@@ -448,7 +590,7 @@ bind('btnInvert',()=>{$('displayedImage').style.filter=(currentFilter+=' invert(
 function showFrame(){if(!images.length)return;const idx=currentImageIndex;originalImgSrc=images[idx];modifiedImgSrc='';$('displayedImage').src=images[idx];$('imageDisplayContainer').style.display='flex';$('editButtons').style.display='grid';$('frameControls').style.display='grid';$('framePager').style.display='block';$('framePager').textContent='INDEX: '+String(idx+1).padStart(4,'0')+' / '+String(images.length).padStart(4,'0');onModelChange()}
 bind('prevButton',()=>{if(currentImageIndex>0){currentImageIndex--;showFrame()}});bind('nextButton',()=>{if(currentImageIndex<images.length-1){currentImageIndex++;showFrame()}});
 document.addEventListener('keydown',e=>{if(/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName))return;if(!images.length)return;if(e.key==='ArrowLeft')$('prevButton').click();if(e.key==='ArrowRight')$('nextButton').click()});
-bind('btnFrames',async()=>{const f=fileEl.files?.[0];if(!f||!f.type.startsWith('video/'))return alert('请先选择视频');const input=txt.value.trim(),fps=/^\d+(?:\.\d+)?$/.test(input)?+input:1;if(!(fps>0&&fps<=30))return alert('FPS 必须在 0-30 之间');frameFps=fps;const btn=$('btnFrames');btn.disabled=true;log('正在抽帧…','EXTRACTING');const vid=document.createElement('video'),url=URL.createObjectURL(f);vid.muted=true;vid.preload='auto';vid.playsInline=true;vid.src=url;try{await new Promise((ok,bad)=>{vid.onloadedmetadata=ok;vid.onerror=()=>bad(Error('视频无法读取'))});if(!isFinite(vid.duration))throw Error('视频时长未知');const count=Math.floor(vid.duration*fps)+1;if(count>3000)throw Error('预计帧数 '+count+'，超过当前浏览器上限 3000 帧，请减小 FPS');images=[];const c=document.createElement('canvas');c.width=vid.videoWidth;c.height=vid.videoHeight;for(let i=0;i<count;i++){let time=Math.min(i/fps,Math.max(0,vid.duration-.01));if(i===0&&time===0){if(vid.readyState<2)await new Promise((ok,bad)=>{vid.onloadeddata=ok;vid.onerror=()=>bad(Error('首帧加载失败'))})}else if(Math.abs(vid.currentTime-time)>0.0001){await new Promise((ok,bad)=>{vid.onseeked=ok;vid.onerror=()=>bad(Error('跳帧失败'));vid.currentTime=time})}c.getContext('2d').drawImage(vid,0,0,c.width,c.height);images.push(c.toDataURL('image/jpeg',.8));if(i%3===0)$('respStatus').textContent='EXTRACTING '+(i+1)+'/'+count}currentImageIndex=0;showFrame();let box=$('mediaPreview');box.replaceChildren();const button=document.createElement('button');button.className='btn btn-ai';button.style.width='100%';button.textContent='📦 一键打包提取矩阵帧 (ZIP)';button.onclick=async()=>{button.disabled=true;try{if(!window.JSZip)throw Error('JSZip 加载失败');const zip=new JSZip(),folder=zip.folder('frames');images.forEach((u,i)=>folder.file('frame_'+String(i).padStart(4,'0')+'_'+(i/fps).toFixed(2)+'s.jpg',u.split(',')[1],{base64:true}));const blob=await zip.generateAsync({type:'blob'},p=>button.textContent='COMPRESSING '+p.percent.toFixed(0)+'%');downloadBlob(blob,f.name.replace(/\.[^.]+$/,'')+'_frames.zip');button.textContent='✅ 已生成 ZIP'}catch(e){alert(e.message)}finally{button.disabled=false}};box.appendChild(button);log('✅ 图像提取成功：'+images.length+' 帧','DONE')}catch(e){log(e.message,'ERROR',false)}finally{URL.revokeObjectURL(url);btn.disabled=false}});
+bind('btnFrames',async()=>{const f=fileEl.files?.[0];if(!f||!f.type.startsWith('video/'))return alert('请先选择视频');const input=txt.value.trim(),fps=/^\d+(?:\.\d+)?$/.test(input)?+input:1;if(!(fps>0&&fps<=30))return alert('FPS 必须在 0-30 之间');frameFps=fps;const btn=$('btnFrames');btn.disabled=true;log('正在抽帧…','EXTRACTING');const vid=document.createElement('video'),url=URL.createObjectURL(f);vid.muted=true;vid.preload='auto';vid.playsInline=true;vid.src=url;try{await new Promise((ok,bad)=>{vid.onloadedmetadata=ok;vid.onerror=()=>bad(Error('视频无法读取'))});if(!isFinite(vid.duration))throw Error('视频时长未知');const count=Math.floor(vid.duration*fps)+1;if(count>3000)throw Error('预计帧数 '+count+'，超过当前浏览器上限 3000 帧，请减小 FPS');images=[];const c=document.createElement('canvas');c.width=vid.videoWidth;c.height=vid.videoHeight;for(let i=0;i<count;i++){let time=Math.min(i/fps,Math.max(0,vid.duration-.01));if(i===0&&time===0){if(vid.readyState<2)await new Promise((ok,bad)=>{vid.onloadeddata=ok;vid.onerror=()=>bad(Error('首帧加载失败'))})}else if(Math.abs(vid.currentTime-time)>0.0001){await new Promise((ok,bad)=>{vid.onseeked=ok;vid.onerror=()=>bad(Error('跳帧失败'));vid.currentTime=time})}c.getContext('2d').drawImage(vid,0,0,c.width,c.height);images.push(c.toDataURL('image/jpeg',.8));if(i%3===0)$('respStatus').textContent='EXTRACTING '+(i+1)+'/'+count}currentImageIndex=0;showFrame();let box=$('mediaPreview');box.replaceChildren();const button=document.createElement('button');button.className='btn btn-ai';button.style.width='100%';button.textContent='📦 一键打包提取矩阵帧 (ZIP)';button.onclick=async()=>{button.disabled=true;try{if(!window.JSZip)throw Error('JSZip 加载失败');const zip=new JSZip(),folder=zip.folder('frames');images.forEach((u,i)=>folder.file('frame_'+String(i).padStart(4,'0')+'_'+(i/fps).toFixed(2)+'s.jpg',u.split(',')[1],{base64:true}));const blob=await zip.generateAsync({type:'blob'},p=>button.textContent='COMPRESSING '+p.percent.toFixed(0)+'%');await downloadBlob(blob,f.name.replace(/\.[^.]+$/,'')+'_frames.zip');button.textContent='✅ 已生成 ZIP'}catch(e){alert(e.message)}finally{button.disabled=false}};box.appendChild(button);log('✅ 图像提取成功：'+images.length+' 帧','DONE')}catch(e){log(e.message,'ERROR',false)}finally{URL.revokeObjectURL(url);btn.disabled=false}});
 // 同一个二维码按钮：上传图片优先识别，否则将输入文字（含链接）生成二维码。
 bind('btnDecodeQR',async()=>{
  const f=fileEl.files?.[0],isImage=!!f&&f.type.startsWith('image/');
@@ -490,7 +632,7 @@ bind('btnDecodeQR',async()=>{
    download.style.cssText='padding:10px 22px;width:min(100%,320px);';
    download.textContent='保存二维码 PNG';
    download.addEventListener('click',()=>canvas.toBlob(blob=>{
-    if(blob)downloadBlob(blob,'qrcode_'+Date.now()+'.png');
+    if(blob){try{const path=await downloadBlob(blob,'qrcode_'+Date.now()+'.png');log('二维码 PNG 已保存：'+path,'SAVED')}catch(error){log('二维码保存失败：'+error.message,'QR ERROR',false)}}
     else log('无法导出二维码 PNG','QR ERROR',false);
    },'image/png'));
    area.append(image,hint,download);preview.appendChild(area);
@@ -522,6 +664,6 @@ bind('audioLabKeep',()=>{try{const old=audioLab.buffer,{start,end}=bounds(),from
 bind('audioLabPreview',async()=>{try{const blob=processedAudio();cleanAudioUrl();audioLab.playerUrl=URL.createObjectURL(blob);$('audioLabPlayer').src=audioLab.playerUrl;await $('audioLabPlayer').play()}catch(e){audioStatus('❌ '+e.message)}});
 async function encodeMP3(blob){if(window.lamejs?.Mp3Encoder){const buffer=await audioContext().decodeAudioData(await blob.arrayBuffer()),n=Math.min(2,buffer.numberOfChannels),enc=new lamejs.Mp3Encoder(n,buffer.sampleRate,192),arrays=Array.from({length:n},(_,i)=>buffer.getChannelData(i)),parts=[];for(let i=0;i<buffer.length;i+=1152){const a=arrays.map(ch=>{const len=Math.min(1152,ch.length-i),out=new Int16Array(len);for(let j=0;j<len;j++){let x=Math.max(-1,Math.min(1,ch[i+j]));out[j]=x<0?x*32768:x*32767}return out});const data=n===2?enc.encodeBuffer(a[0],a[1]):enc.encodeBuffer(a[0]);if(data.length)parts.push(new Uint8Array(data));if(i&&i%(1152*300)===0){audioStatus('MP3 编码 '+Math.round(i/buffer.length*100)+'%');await sleep(0)}}const rest=enc.flush();if(rest.length)parts.push(new Uint8Array(rest));return new Blob(parts,{type:'audio/mpeg'})}return ffConvert(blob,'source.wav','mp3',['-vn','-c:a','libmp3lame','-b:a','192k'])}
 async function exportFormat(blob,format){if(format==='wav')return blob;if(format==='mp3')try{return await encodeMP3(blob)}catch{ /* FFmpeg fallback */ }const args={mp3:['-c:a','libmp3lame','-b:a','192k'],flac:['-c:a','flac'],m4a:['-c:a','aac','-b:a','192k'],aac:['-c:a','aac','-b:a','192k','-f','adts'],ogg:['-c:a','libvorbis','-b:a','192k'],opus:['-c:a','libopus','-b:a','192k','-ar','48000'],webm:['-c:a','libopus','-b:a','192k','-ar','48000']}[format];if(!args)throw Error('不支持该格式');return ffConvert(blob,'source.wav',format,['-vn',...args])}
-bind('audioLabExport',async()=>{if(audioLab.busy)return;audioLab.busy=true;setAudioButtons();try{audioStatus('正在编码…');const format=$('audioLabFormat').value,blob=await exportFormat(processedAudio(),format);downloadBlob(blob,audioLab.name.replace(/\.[^.]+$/,'')+'_edited.'+format);audioStatus('✅ '+format.toUpperCase()+' 已导出 '+(blob.size/1048576).toFixed(2)+' MB')}catch(e){audioStatus('❌ '+e.message)}finally{audioLab.busy=false;setAudioButtons()}});
-bind('btnExtractAudio',async()=>{const f=fileEl.files?.[0];if(!f||!(f.type.startsWith('video/')||/\.(mp4|mov|webm|mkv|avi)$/i.test(f.name)))return alert('请先选择视频文件');openAudio();try{audioStatus('视频音轨提取中…');const mp3=await ffConvert(f,f.name,'mp3',['-map','0:a:0','-vn','-c:a','libmp3lame','-b:a','192k']);const buffer=await audioContext().decodeAudioData(await mp3.arrayBuffer());installAudio(buffer,f.name.replace(/\.[^.]+$/,'')+'_audio.mp3',mp3);downloadBlob(mp3,f.name.replace(/\.[^.]+$/,'')+'_audio.mp3');audioStatus('✅ 视频音轨已提取为 MP3，并载入剪辑工作台')}catch(e){audioStatus('❌ '+e.message)}});
+bind('audioLabExport',async()=>{if(audioLab.busy)return;audioLab.busy=true;setAudioButtons();try{audioStatus('正在编码…');const format=$('audioLabFormat').value,blob=await exportFormat(processedAudio(),format);const savedPath=await downloadBlob(blob,audioLab.name.replace(/\.[^.]+$/,'')+'_edited.'+format);audioStatus('✅ '+format.toUpperCase()+' 已保存 '+(blob.size/1048576).toFixed(2)+' MB\n位置：'+savedPath)}catch(e){audioStatus('❌ '+e.message)}finally{audioLab.busy=false;setAudioButtons()}});
+bind('btnExtractAudio',async()=>{const f=fileEl.files?.[0];if(!f||!(f.type.startsWith('video/')||/\.(mp4|mov|webm|mkv|avi)$/i.test(f.name)))return alert('请先选择视频文件');openAudio();try{audioStatus('视频音轨提取中…');const mp3=await ffConvert(f,f.name,'mp3',['-map','0:a:0','-vn','-c:a','libmp3lame','-b:a','192k']);const buffer=await audioContext().decodeAudioData(await mp3.arrayBuffer());installAudio(buffer,f.name.replace(/\.[^.]+$/,'')+'_audio.mp3',mp3);const savedPath=await downloadBlob(mp3,f.name.replace(/\.[^.]+$/,'')+'_audio.mp3');audioStatus('✅ 视频音轨已提取并保存\n位置：'+savedPath)}catch(e){audioStatus('❌ '+e.message)}});
 </script></body></html>

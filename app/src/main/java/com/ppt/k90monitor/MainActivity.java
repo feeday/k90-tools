@@ -103,8 +103,12 @@ public class MainActivity extends Activity {
         start.setOnClickListener(v -> startMonitor());
         root.addView(start, buttonLp());
 
-        Button aiTools = makeButton("打开 Puck Chat AI 工具箱");
-        aiTools.setOnClickListener(v -> startActivity(new Intent(this, PuckChatActivity.class)));
+        Button aiTools = makeButton("打开 K90-Tools AI 工具箱");
+        aiTools.setOnClickListener(v -> {
+            Intent intent = new Intent(this, PuckChatActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+        });
         root.addView(aiTools, buttonLp());
 
         Button stop = makeButton("停止悬浮监控");

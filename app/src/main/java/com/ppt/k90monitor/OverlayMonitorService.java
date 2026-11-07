@@ -18,10 +18,15 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.provider.Settings;
+import android.text.InputType;
 import android.view.Gravity;
+import android.view.KeyEvent;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -45,6 +50,8 @@ public class OverlayMonitorService extends Service {
     private LinearLayout footer;
     private TextView ftpToggle;
     private TextView aiButton;
+    private EditText aiInput;
+    private long lastAiLaunchAt;
     private TextView close;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private MetricReader reader;
@@ -139,15 +146,7 @@ public class OverlayMonitorService extends Service {
         aiButton.setTextSize(10);
         aiButton.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         aiButton.setPadding(dp(4), dp(3), dp(10), dp(3));
-        aiButton.setOnClickListener(v -> {
-            try {
-                Intent intent = new Intent(this, PuckChatActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
-            } catch (Throwable e) {
-                Toast.makeText(this, "打开 AI 工具箱失败", Toast.LENGTH_LONG).show();
-            }
-        });
+        aiButton.setOnClickListener(v -> openAiTools(null));
         footer.addView(aiButton, new LinearLayout.LayoutParams(-2, -2));
 
         close = new TextView(this);
@@ -159,6 +158,49 @@ public class OverlayMonitorService extends Service {
         footer.addView(close, new LinearLayout.LayoutParams(-2, -2));
         box.addView(footer, new LinearLayout.LayoutParams(-2, -2));
 
+        LinearLayout chatRow = new LinearLayout(this);
+        chatRow.setOrientation(LinearLayout.HORIZONTAL);
+        chatRow.setGravity(Gravity.CENTER_VERTICAL);
+        chatRow.setPadding(0, dp(7), 0, 0);
+
+        aiInput = new EditText(this);
+        aiInput.setSingleLine(true);
+        aiInput.setTextSize(11);
+        aiInput.setTextColor(Color.WHITE);
+        aiInput.setHintTextColor(0xFF888888);
+        aiInput.setHint("输入问题，发送给 AI");
+        aiInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_AUTO_CORRECT);
+        aiInput.setImeOptions(EditorInfo.IME_ACTION_SEND);
+        aiInput.setPadding(dp(8), dp(5), dp(8), dp(5));
+        GradientDrawable inputBg = new GradientDrawable();
+        inputBg.setColor(0xFF101418);
+        inputBg.setCornerRadius(dp(6));
+        inputBg.setStroke(dp(1), 0x6644C8B5);
+        aiInput.setBackground(inputBg);
+        aiInput.setOnClickListener(v -> focusAiInput());
+        aiInput.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) setOverlayFocusable(true);
+        });
+        aiInput.setOnEditorActionListener((v, actionId, event) -> {
+            boolean send = actionId == EditorInfo.IME_ACTION_SEND
+                    || (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER
+                    && event.getAction() == KeyEvent.ACTION_UP);
+            if (send) { sendOverlayPrompt(); return true; }
+            return false;
+        });
+        chatRow.addView(aiInput, new LinearLayout.LayoutParams(0, dp(38), 1f));
+
+        TextView sendAi = new TextView(this);
+        sendAi.setText("发送");
+        sendAi.setTextColor(0xFF78E8D2);
+        sendAi.setTextSize(11);
+        sendAi.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        sendAi.setGravity(Gravity.CENTER);
+        sendAi.setPadding(dp(12), dp(6), dp(12), dp(6));
+        sendAi.setOnClickListener(v -> sendOverlayPrompt());
+        chatRow.addView(sendAi, new LinearLayout.LayoutParams(-2, dp(38)));
+        box.addView(chatRow, new LinearLayout.LayoutParams(-1, -2));
+
         lp = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -169,7 +211,7 @@ public class OverlayMonitorService extends Service {
         lp.x = dp(10);
         lp.y = dp(90);
 
-        box.setOnTouchListener(new DragTouchListener());
+        text.setOnTouchListener(new DragTouchListener());
         box.setOnLongClickListener(v -> { stopSelf(); return true; });
         overlay = box;
         windowManager.addView(overlay, lp);
@@ -212,6 +254,59 @@ public class OverlayMonitorService extends Service {
                     .append("\nPWR ").append(RedMagicBridgeReader.formatPower(r.powerW));
         }
         text.setText(out.toString());
+    }
+
+    private void focusAiInput() {
+        setOverlayFocusable(true);
+        if (aiInput != null) {
+            aiInput.requestFocus();
+            InputMethodManager input = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (input != null) input.showSoftInput(aiInput, InputMethodManager.SHOW_IMPLICIT);
+        }
+    }
+
+    private void setOverlayFocusable(boolean focusable) {
+        if (lp == null || overlay == null || windowManager == null) return;
+        if (focusable) lp.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        else lp.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        try { windowManager.updateViewLayout(overlay, lp); } catch (Throwable ignored) { }
+    }
+
+    private void sendOverlayPrompt() {
+        if (aiInput == null) return;
+        String prompt = aiInput.getText().toString().trim();
+        if (prompt.isEmpty()) {
+            Toast.makeText(this, "先输入要发送的文字", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        aiInput.setText("");
+        InputMethodManager input = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        if (input != null) input.hideSoftInputFromWindow(aiInput.getWindowToken(), 0);
+        aiInput.clearFocus();
+        setOverlayFocusable(false);
+        openAiTools(prompt);
+    }
+
+    private void openAiTools(String prompt) {
+        long now = SystemClock.elapsedRealtime();
+        if (prompt == null && now - lastAiLaunchAt < 700) return;
+        lastAiLaunchAt = now;
+        if (aiInput != null) {
+            InputMethodManager input = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (input != null) input.hideSoftInputFromWindow(aiInput.getWindowToken(), 0);
+            aiInput.clearFocus();
+            setOverlayFocusable(false);
+        }
+        try {
+            Intent intent = new Intent(this, PuckChatActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            if (prompt != null) intent.putExtra(PuckChatActivity.EXTRA_PROMPT, prompt);
+            startActivity(intent);
+        } catch (Throwable error) {
+            Toast.makeText(this, "打开 K90-Tools AI 工具箱失败", Toast.LENGTH_LONG).show();
+        }
     }
 
     private void toggleFtp() {
