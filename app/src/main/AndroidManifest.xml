@@ -20,7 +20,7 @@
 
         <activity
             android:name=".PuckChatActivity"
-            android:label="Puck Chat AI 工具箱"
+            android:label="K90-Tools"
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden" />
 

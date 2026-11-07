@@ -2,7 +2,7 @@
 
 面向 **Redmi K90 / HyperOS / Android 16** 的性能监控与 AI 工具整合 APK。
 
-当前版本：**5.8-tools**
+当前版本：**5.9-tools**
 
 项目核心目标：**普通权限、无需 Root、无需 Shizuku，也能稳定显示 K90 的系统性能、温度和实时网速。**
 
@@ -14,7 +14,7 @@
 - 悬浮窗内 FTP 快速开关
 - 悬浮窗显示 FTP 地址 / 连接数 / 上传下载速率
 - APK 内置 Puck Chat AI 工具箱（不依赖 puck.chat 网站）
-- 豆包实时 ASR / TTS 由 Android 原生 WebSocket 直接连接
+- 仅保留豆包 TTS 语音朗读和本地 TTS，不包含实时 ASR、麦克风录音或麦克风权限。
 - 可选红魔散热器遥测扩展
 - Android 15 / 16 Edge-to-Edge 安全区适配
 
