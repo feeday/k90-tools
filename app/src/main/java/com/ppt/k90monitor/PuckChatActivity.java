@@ -44,6 +44,7 @@ public class PuckChatActivity extends Activity {
     private ValueCallback<Uri[]> fileChooserCallback;
     private WebViewAssetLoader assetLoader;
     private PuckSpeechBridge speechBridge;
+    private PuckHttpBridge httpBridge;
     private boolean pageLoaded;
     private String pendingPrompt;
     private boolean promptDispatchInFlight;
@@ -94,6 +95,9 @@ public class PuckChatActivity extends Activity {
         mainWebView = createWebView();
         speechBridge = new PuckSpeechBridge(mainWebView);
         mainWebView.addJavascriptInterface(speechBridge, "AndroidPuck");
+        httpBridge = new PuckHttpBridge(mainWebView);
+        mainWebView.addJavascriptInterface(httpBridge, "AndroidHttp");
+        mainWebView.addJavascriptInterface(new ToolsSettings(), "AndroidSettings");
         contentFrame.addView(mainWebView, new FrameLayout.LayoutParams(-1, -1));
 
         popupLayer = new LinearLayout(this);
@@ -105,6 +109,32 @@ public class PuckChatActivity extends Activity {
         root.addView(contentFrame, new LinearLayout.LayoutParams(-1, 0, 1f));
         setContentView(root);
 
+    }
+
+    public final class ToolsSettings {
+        @android.webkit.JavascriptInterface public void resetTools() {
+            mainHandler.post(() -> {
+                pageLoaded = false;
+                pendingPrompt = null;
+                getIntent().removeExtra(EXTRA_PROMPT);
+                mainHandler.removeCallbacksAndMessages(null);
+                if (httpBridge != null) httpBridge.close();
+                if (speechBridge != null) {
+                    speechBridge.cancelTts(); speechBridge.cancelLocalTts(); speechBridge.shutdownSystemTts();
+                }
+                if (mainWebView != null) {
+                    mainWebView.stopLoading();
+                    mainWebView.clearCache(true);
+                    mainWebView.clearFormData();
+                    mainWebView.clearHistory();
+                }
+                android.webkit.WebStorage.getInstance().deleteAllData();
+                android.webkit.CookieManager.getInstance().removeAllCookies(removed -> {
+                    android.webkit.CookieManager.getInstance().flush();
+                    if (!isFinishing() && !isDestroyed()) recreate();
+                });
+            });
+        }
     }
 
     private WebView createWebView() {
@@ -130,7 +160,10 @@ public class PuckChatActivity extends Activity {
 
             @Override public void onPageStarted(WebView webView, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(webView, url, favicon);
-                if (webView == mainWebView) pageLoaded = false;
+                if (webView == mainWebView) {
+                    pageLoaded = false;
+                    if (httpBridge != null) httpBridge.cancelAll();
+                }
             }
 
             @Override public void onPageFinished(WebView webView, String url) {
@@ -195,7 +228,7 @@ public class PuckChatActivity extends Activity {
                 || pendingPrompt == null || pendingPrompt.trim().isEmpty()) return;
         String prompt = pendingPrompt;
         String script = "(function(){if(typeof window.receiveOverlayPrompt!=='function')return false;"
-                + "window.receiveOverlayPrompt(" + JSONObject.quote(prompt) + ");return true;})()";
+                + "return window.receiveOverlayPrompt(" + JSONObject.quote(prompt) + ")===true;})()";
         promptDispatchInFlight = true;
         mainWebView.evaluateJavascript(script, result -> {
             promptDispatchInFlight = false;
@@ -322,9 +355,10 @@ public class PuckChatActivity extends Activity {
         }
         closePopupWindow();
         mainHandler.removeCallbacksAndMessages(null);
+        if (httpBridge != null) httpBridge.close();
         if (speechBridge != null) { speechBridge.cancelTts(); speechBridge.cancelLocalTts(); speechBridge.shutdownSystemTts(); }
         if (mainWebView != null) {
-            try { mainWebView.stopLoading(); mainWebView.removeJavascriptInterface("AndroidPuck"); mainWebView.destroy(); }
+            try { mainWebView.stopLoading(); mainWebView.removeJavascriptInterface("AndroidPuck"); mainWebView.removeJavascriptInterface("AndroidHttp"); mainWebView.removeJavascriptInterface("AndroidSettings"); mainWebView.destroy(); }
             catch (Throwable ignored) { }
             mainWebView = null;
         }

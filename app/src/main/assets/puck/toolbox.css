@@ -1,0 +1,51 @@
+/* Shared compact theme for the Android toolbox and browser. */
+:root{color-scheme:dark;--surface:#15191d;--line:#2c333a;--muted:#9aa6b2;--accent:#72dec7;--green:#75e998}
+body{font-family:system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;background:#0c1014;color:#e3e9ef;padding:12px}
+.app-container{display:flex;flex-direction:column;gap:10px;padding-bottom:16px}
+.app-container>.card,.app-container>.footer-banner{margin:0;padding:12px;min-width:0;width:100%}
+.card,.app-container>.footer-banner{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:none;backdrop-filter:none}
+.card::before,.card::after{content:none}
+[hidden]{display:none!important}
+.input-style{font-family:inherit;font-size:14px;line-height:1.5;color:#dbe7ee;background:#0f1419;border-color:var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;min-width:0}
+.input-style:focus{border-color:var(--accent);background:#10191c;box-shadow:0 0 0 2px #72dec71a}
+.input-style::placeholder{color:#7f8b97}
+#universalText{display:block;margin:0;min-height:100px;line-height:1.65}
+#stats{margin:0 0 8px;padding:6px 2px;border:0;background:transparent;color:var(--muted);gap:5px;font-size:11px}
+#mainToolsGrid{margin:0!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px}
+.btn,#mainToolsGrid .btn{min-width:0;min-height:42px;padding:9px 5px;border-radius:8px;letter-spacing:0;font-size:13px;line-height:1.3;color:#d3dce5;background:#20272e;border-color:#333d47;font-weight:500}
+.btn:hover{background:#2a343e;color:#fff}
+#btnCombinedAction,.btn-ai,.btn-tucao{color:#9af1de!important;background:#16352f!important;border-color:#376f61!important}
+.btn-danger{color:#f5a1a6!important;background:#302024!important;border-color:#684046!important}
+.btn:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#aiMemoryStatus{font-size:11px!important;line-height:1.5!important;margin:8px 0 0!important;overflow-wrap:anywhere;color:var(--muted)!important}
+#responseWrap{margin-top:10px}
+#responseWrap>div:first-child{gap:8px}
+#respStatus{overflow-wrap:anywhere;min-width:0}
+#btnHideResp{min-height:32px;flex-shrink:0}
+#response{font:14px/1.7 system-ui,sans-serif;color:var(--green);background:#101b16;border:1px solid #30543d;border-radius:8px;padding:10px;margin-top:7px;max-height:400px;overflow-wrap:anywhere}
+#callUsageDetails{margin:10px 0 0;padding:0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;color:var(--green)!important}
+#callUsageDetails summary{font-size:13px;line-height:1.5;padding:11px 0 1px;cursor:pointer;color:var(--green)}
+#callUsageLog{margin:8px 0 0;padding:10px;background:#101b16;border-radius:8px;color:var(--green)!important;max-height:260px;overflow:auto}
+.app-container>.footer-banner{display:flex;flex-direction:column;gap:8px;text-align:left}
+.footer-banner .input-style{margin:0;width:100%;min-height:44px}
+#imageOptionsWrapper{width:100%}
+#imageOptionsWrapper .input-style+.input-style{margin-top:8px}
+#imageDisplayContainer,#mediaPreview{margin-top:0!important}
+#mediaPreview:empty{display:none!important}
+#mediaPreview:not(:empty){gap:8px}
+#imageDisplayContainer:not([style*='display: none'])+#mediaPreview:not(:empty){margin-top:10px!important}
+.speech-settings summary{font-size:14px;line-height:1.5;cursor:pointer}
+.speech-settings details[open] summary{margin-bottom:10px}
+.speech-settings .speech-config-grid{gap:8px}
+.speech-settings .input-style{margin:5px 0 8px}
+.small-note{color:var(--muted);line-height:1.6}
+#universalFile{margin:0;font-size:12px}
+#universalFile::file-selector-button{background:#26332f;border:0;border-radius:6px;color:#a1edda;padding:7px 10px;margin-right:8px}
+#ttsSavePanel{padding:8px;background:#101b16;border-radius:8px}
+@media(min-width:900px){
+ .app-container{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:none;gap:12px;align-items:start}
+ .app-container>*{grid-area:auto!important}
+ .app-container>#audioLabCard,.app-container>#viewportCard,.app-container>#pingCard{grid-column:1/-1!important}
+ #mainToolsGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media(max-width:359px){body{padding:8px}.app-container>.card,.app-container>.footer-banner{padding:10px}#mainToolsGrid .btn{font-size:12px;padding:9px 2px}}

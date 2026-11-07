@@ -1,6 +1,8 @@
 name: Build K90-Tools APK
 
 on:
+  pull_request:
+    branches: [ "main" ]
   workflow_dispatch:
   push:
     branches: [ "main", "experiment" ]
@@ -64,6 +66,9 @@ jobs:
             node --check "$script"
           done
 
+      - name: Test API transport and overlay prompt behavior
+        run: node --test tests/puck-network.test.cjs
+
       - name: Check required Puck Chat integrations
         shell: bash
         run: |
@@ -78,7 +83,7 @@ jobs:
               "native file export": "AndroidPuck.beginSaveFile",
               "native system speech fallback": "AndroidPuck.speakSystem",
               "awaited audio export": "await downloadBlob(blob",
-              "video-to-audio button": 'id="btnExtractAudio"',
+              "image description button": 'id="btnDescribeImage"',
               "retained source media": "audioLab.sourceFile=file",
           }
           missing = [name for name, marker in required.items() if marker not in html]
@@ -93,14 +98,9 @@ jobs:
           print(f"Required integrations present; {len(bound)} bound controls have matching DOM elements")
 
           overlay_java = Path("app/src/main/java/com/ppt/k90monitor/OverlayMonitorService.java").read_text(encoding="utf-8")
-          java_required = {
-              "tracked AI input row": "private LinearLayout chatRow;",
-              "hide input in temperature mode": "setChatInputVisible(false);",
-              "show input in full mode": "setChatInputVisible(true);",
-          }
-          missing_java = [name for name, marker in java_required.items() if marker not in overlay_java]
-          if missing_java:
-              raise SystemExit("Missing overlay mode behavior: " + ", ".join(missing_java))
+          if "aiInput" in overlay_java or "chatRow" in overlay_java:
+              raise SystemExit("Overlay input must remain removed")
+          print("Overlay composer removed")
 
           manifest = Path("app/src/main/AndroidManifest.xml").read_text(encoding="utf-8")
           if 'android:icon="@mipmap/ic_launcher"' not in manifest:
